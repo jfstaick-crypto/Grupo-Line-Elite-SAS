@@ -38,6 +38,9 @@ export async function GET(request: Request) {
   const { admissions, patients, users } = await import("@/db/schema");
   const db = getDb();
 
+  const { aliasedTable } = await import("drizzle-orm");
+  const assignedDoctor = aliasedTable(users, "assigned_doctor");
+
   const allAdmissions = await db
     .select({
       id: admissions.id,
@@ -48,14 +51,30 @@ export async function GET(request: Request) {
       status: admissions.status,
       admissionDate: admissions.admissionDate,
       dischargeDate: admissions.dischargeDate,
+      companionName: admissions.companionName,
+      companionRelationship: admissions.companionRelationship,
+      companionPhone: admissions.companionPhone,
+      patientDocumentType: patients.documentType,
       patientFirstName: patients.firstName,
+      patientMiddleName: patients.middleName,
       patientLastName: patients.lastName,
+      patientSecondLastName: patients.secondLastName,
       patientDocumentId: patients.documentId,
+      patientGender: patients.gender,
+      patientMaritalStatus: patients.maritalStatus,
+      patientPhone: patients.phone,
+      patientAddress: patients.address,
+      patientCity: patients.city,
+      patientInsurance: patients.insurance,
+      patientRegime: patients.regime,
       admittedByName: users.fullName,
+      assignedDoctorName: assignedDoctor.fullName,
+      assignedDoctorId: admissions.assignedDoctorId,
     })
     .from(admissions)
     .leftJoin(patients, eq(admissions.patientId, patients.id))
-    .leftJoin(users, eq(admissions.admittedBy, users.id));
+    .leftJoin(users, eq(admissions.admittedBy, users.id))
+    .leftJoin(assignedDoctor, eq(admissions.assignedDoctorId, assignedDoctor.id));
 
   return NextResponse.json(allAdmissions);
 }
@@ -72,7 +91,16 @@ export async function POST(request: Request) {
     const db = getDb();
 
     const body = await request.json();
-    const { patientId, reason, department, bed } = body;
+    const {
+      patientId,
+      reason,
+      department,
+      bed,
+      assignedDoctorId,
+      companionName,
+      companionRelationship,
+      companionPhone,
+    } = body;
 
     if (!patientId || !reason || !department) {
       return NextResponse.json(
@@ -84,10 +112,14 @@ export async function POST(request: Request) {
     await db.insert(admissions).values({
       patientId,
       admittedBy: session.userId,
+      assignedDoctorId: assignedDoctorId || null,
       reason,
       department,
       bed: bed || null,
       status: "activa",
+      companionName: companionName || null,
+      companionRelationship: companionRelationship || null,
+      companionPhone: companionPhone || null,
     });
 
     return NextResponse.json({ success: true }, { status: 201 });

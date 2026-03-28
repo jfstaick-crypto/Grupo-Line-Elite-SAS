@@ -30,7 +30,29 @@ export async function GET(request: Request) {
 
   const { getDb } = await import("@/db");
   const { patients } = await import("@/db/schema");
+  const { eq, like } = await import("drizzle-orm");
   const db = getDb();
+
+  const { searchParams } = new URL(request.url);
+  const documentId = searchParams.get("documentId");
+
+  if (documentId) {
+    const found = await db
+      .select()
+      .from(patients)
+      .where(eq(patients.documentId, documentId))
+      .limit(1);
+    return NextResponse.json(found.length > 0 ? found[0] : null);
+  }
+
+  const search = searchParams.get("search");
+  if (search) {
+    const found = await db
+      .select()
+      .from(patients)
+      .where(like(patients.documentId, `%${search}%`));
+    return NextResponse.json(found);
+  }
 
   const allPatients = await db.select().from(patients);
   return NextResponse.json(allPatients);
@@ -49,12 +71,29 @@ export async function POST(request: Request) {
     const db = getDb();
 
     const body = await request.json();
-    const { documentId, firstName, lastName, birthDate, gender, phone, address } =
-      body;
+    const {
+      documentType,
+      documentId,
+      firstName,
+      middleName,
+      lastName,
+      secondLastName,
+      birthDate,
+      gender,
+      maritalStatus,
+      address,
+      city,
+      locality,
+      neighborhood,
+      phone,
+      insurance,
+      regime,
+      occupation,
+    } = body;
 
-    if (!documentId || !firstName || !lastName || !birthDate || !gender) {
+    if (!documentType || !documentId || !firstName || !lastName || !birthDate || !gender) {
       return NextResponse.json(
-        { error: "Campos obligatorios faltantes" },
+        { error: "Tipo doc, número, nombre, apellido, fecha nacimiento y sexo son obligatorios" },
         { status: 400 }
       );
     }
@@ -66,23 +105,57 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (existing.length > 0) {
-      return NextResponse.json(
-        { error: "Paciente con este documento ya existe" },
-        { status: 400 }
-      );
+      const patient = existing[0];
+      await db
+        .update(patients)
+        .set({
+          documentType,
+          firstName,
+          middleName: middleName || null,
+          lastName,
+          secondLastName: secondLastName || null,
+          birthDate,
+          gender,
+          maritalStatus: maritalStatus || null,
+          address: address || null,
+          city: city || null,
+          locality: locality || null,
+          neighborhood: neighborhood || null,
+          phone: phone || null,
+          insurance: insurance || null,
+          regime: regime || null,
+          occupation: occupation || null,
+        })
+        .where(eq(patients.documentId, documentId));
+
+      return NextResponse.json({
+        success: true,
+        message: "Paciente actualizado",
+        patient: { ...patient, ...body },
+      });
     }
 
     await db.insert(patients).values({
+      documentType,
       documentId,
       firstName,
+      middleName: middleName || null,
       lastName,
+      secondLastName: secondLastName || null,
       birthDate,
       gender,
-      phone: phone || null,
+      maritalStatus: maritalStatus || null,
       address: address || null,
+      city: city || null,
+      locality: locality || null,
+      neighborhood: neighborhood || null,
+      phone: phone || null,
+      insurance: insurance || null,
+      regime: regime || null,
+      occupation: occupation || null,
     });
 
-    return NextResponse.json({ success: true }, { status: 201 });
+    return NextResponse.json({ success: true, message: "Paciente registrado" }, { status: 201 });
   } catch (error) {
     console.error("Create patient error:", error);
     return NextResponse.json(

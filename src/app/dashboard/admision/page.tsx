@@ -2,15 +2,30 @@
 
 import { useState, useEffect } from "react";
 
+interface Doctor {
+  id: number;
+  fullName: string;
+}
+
 interface Patient {
   id: number;
+  documentType: string;
   documentId: string;
   firstName: string;
+  middleName: string | null;
   lastName: string;
+  secondLastName: string | null;
   birthDate: string;
   gender: string;
+  maritalStatus: string | null;
   phone: string | null;
   address: string | null;
+  city: string | null;
+  locality: string | null;
+  neighborhood: string | null;
+  insurance: string | null;
+  regime: string | null;
+  occupation: string | null;
 }
 
 interface Admission {
@@ -21,43 +36,59 @@ interface Admission {
   bed: string | null;
   status: string;
   admissionDate: string;
-  dischargeDate: string | null;
   patientFirstName: string | null;
+  patientMiddleName: string | null;
   patientLastName: string | null;
+  patientSecondLastName: string | null;
   patientDocumentId: string | null;
-  admittedByName: string | null;
+  patientDocumentType: string | null;
+  assignedDoctorName: string | null;
+  assignedDoctorId: number | null;
+  companionName: string | null;
+  companionRelationship: string | null;
+  companionPhone: string | null;
 }
 
+const DOC_TYPES = ["CC", "TI", "RC", "CE", "AS", "MS", "PS", "PT"];
+const MARITAL_OPTIONS = ["Soltero", "Casado", "Viudo", "Union Libre"];
 const DEPARTMENTS = [
-  "Urgencias",
-  "Hospitalización",
-  "UCI",
-  "Pediatría",
-  "Cirugía",
-  "Cardiología",
-  "Neurología",
-  "Traumatología",
-  "Oncología",
-  "Ginecología",
+  "Urgencias", "Hospitalización", "UCI", "Pediatría", "Cirugía",
+  "Cardiología", "Neurología", "Traumatología", "Oncología", "Ginecología",
+];
+const RELATIONSHIPS = [
+  "Esposo/a", "Hijo/a", "Padre", "Madre", "Hermano/a",
+  "Tío/a", "Primo/a", "Abuelo/a", "Otro",
 ];
 
 export default function AdmisionPage() {
-  const [patients, setPatients] = useState<Patient[]>([]);
   const [admissions, setAdmissions] = useState<Admission[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPatientForm, setShowPatientForm] = useState(false);
   const [showAdmissionForm, setShowAdmissionForm] = useState(false);
+  const [foundPatient, setFoundPatient] = useState<Patient | null>(null);
+  const [searchDoc, setSearchDoc] = useState("");
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
   const [patientForm, setPatientForm] = useState({
+    documentType: "CC",
     documentId: "",
     firstName: "",
+    middleName: "",
     lastName: "",
+    secondLastName: "",
     birthDate: "",
     gender: "M",
-    phone: "",
+    maritalStatus: "Soltero",
     address: "",
+    city: "",
+    locality: "",
+    neighborhood: "",
+    phone: "",
+    insurance: "",
+    regime: "",
+    occupation: "",
   });
 
   const [admissionForm, setAdmissionForm] = useState({
@@ -65,34 +96,65 @@ export default function AdmisionPage() {
     reason: "",
     department: "Urgencias",
     bed: "",
+    assignedDoctorId: 0,
+    companionName: "",
+    companionRelationship: "",
+    companionPhone: "",
   });
-
-  const fetchData = async () => {
-    const [patientsRes, admissionsRes] = await Promise.all([
-      fetch("/api/pacientes"),
-      fetch("/api/admisiones"),
-    ]);
-    if (patientsRes.ok) setPatients(await patientsRes.json());
-    if (admissionsRes.ok) setAdmissions(await admissionsRes.json());
-    setLoading(false);
-  };
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [patientsRes, admissionsRes] = await Promise.all([
-        fetch("/api/pacientes"),
+      const [admRes, docRes] = await Promise.all([
         fetch("/api/admisiones"),
+        fetch("/api/medicos"),
       ]);
       if (!cancelled) {
-        if (patientsRes.ok) setPatients(await patientsRes.json());
-        if (admissionsRes.ok) setAdmissions(await admissionsRes.json());
+        if (admRes.ok) setAdmissions(await admRes.json());
+        if (docRes.ok) setDoctors(await docRes.json());
         setLoading(false);
       }
     };
     load();
     return () => { cancelled = true; };
   }, []);
+
+  const searchPatient = async () => {
+    if (!searchDoc.trim()) return;
+    setError("");
+    const res = await fetch(`/api/pacientes?documentId=${searchDoc}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data) {
+        setFoundPatient(data);
+        setAdmissionForm({ ...admissionForm, patientId: data.id });
+        setPatientForm({
+          documentType: data.documentType || "CC",
+          documentId: data.documentId,
+          firstName: data.firstName,
+          middleName: data.middleName || "",
+          lastName: data.lastName,
+          secondLastName: data.secondLastName || "",
+          birthDate: data.birthDate,
+          gender: data.gender,
+          maritalStatus: data.maritalStatus || "Soltero",
+          address: data.address || "",
+          city: data.city || "",
+          locality: data.locality || "",
+          neighborhood: data.neighborhood || "",
+          phone: data.phone || "",
+          insurance: data.insurance || "",
+          regime: data.regime || "",
+          occupation: data.occupation || "",
+        });
+        setShowPatientForm(true);
+      } else {
+        setFoundPatient(null);
+        setPatientForm({ ...patientForm, documentId: searchDoc });
+        setShowPatientForm(true);
+      }
+    }
+  };
 
   const handlePatientSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,24 +173,22 @@ export default function AdmisionPage() {
       return;
     }
 
-    setSuccess("Paciente registrado exitosamente");
-    setPatientForm({
-      documentId: "",
-      firstName: "",
-      lastName: "",
-      birthDate: "",
-      gender: "M",
-      phone: "",
-      address: "",
-    });
-    setShowPatientForm(false);
-    fetchData();
+    setSuccess(data.message || "Paciente guardado");
+    if (data.patient) {
+      setFoundPatient(data.patient);
+      setAdmissionForm({ ...admissionForm, patientId: data.patient.id });
+    }
   };
 
   const handleAdmissionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
+
+    if (!admissionForm.patientId) {
+      setError("Primero busque y registre un paciente");
+      return;
+    }
 
     const res = await fetch("/api/admisiones", {
       method: "POST",
@@ -143,9 +203,16 @@ export default function AdmisionPage() {
     }
 
     setSuccess("Admisión creada exitosamente");
-    setAdmissionForm({ patientId: 0, reason: "", department: "Urgencias", bed: "" });
     setShowAdmissionForm(false);
-    fetchData();
+    setShowPatientForm(false);
+    setFoundPatient(null);
+    setSearchDoc("");
+    setAdmissionForm({
+      patientId: 0, reason: "", department: "Urgencias", bed: "",
+      assignedDoctorId: 0, companionName: "", companionRelationship: "", companionPhone: "",
+    });
+    const admRes = await fetch("/api/admisiones");
+    if (admRes.ok) setAdmissions(await admRes.json());
   };
 
   const handleDischarge = async (id: number) => {
@@ -154,7 +221,8 @@ export default function AdmisionPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, status: "cerrada" }),
     });
-    fetchData();
+    const admRes = await fetch("/api/admisiones");
+    if (admRes.ok) setAdmissions(await admRes.json());
   };
 
   if (loading) {
@@ -168,145 +236,231 @@ export default function AdmisionPage() {
           <h1 className="text-2xl font-bold text-gray-800">Admisión de Pacientes</h1>
           <p className="text-gray-500 text-sm">Registre pacientes y gestione admisiones</p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => {
-              setShowPatientForm(!showPatientForm);
-              setShowAdmissionForm(false);
-            }}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer"
-          >
-            + Nuevo Paciente
-          </button>
-          <button
-            onClick={() => {
-              setShowAdmissionForm(!showAdmissionForm);
-              setShowPatientForm(false);
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer"
-          >
-            + Nueva Admisión
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            setShowAdmissionForm(!showAdmissionForm);
+            setShowPatientForm(false);
+            setFoundPatient(null);
+            setSearchDoc("");
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer"
+        >
+          + Nueva Admisión
+        </button>
       </div>
 
       {success && (
-        <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-          {success}
-        </div>
+        <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">{success}</div>
       )}
       {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-          {error}
-        </div>
-      )}
-
-      {showPatientForm && (
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Registrar Paciente</h2>
-          <form onSubmit={handlePatientSubmit} className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Documento de Identidad</label>
-              <input type="text" value={patientForm.documentId} onChange={(e) => setPatientForm({ ...patientForm, documentId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-              <input type="text" value={patientForm.firstName} onChange={(e) => setPatientForm({ ...patientForm, firstName: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
-              <input type="text" value={patientForm.lastName} onChange={(e) => setPatientForm({ ...patientForm, lastName: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Nacimiento</label>
-              <input type="date" value={patientForm.birthDate} onChange={(e) => setPatientForm({ ...patientForm, birthDate: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Género</label>
-              <select value={patientForm.gender} onChange={(e) => setPatientForm({ ...patientForm, gender: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800">
-                <option value="M">Masculino</option>
-                <option value="F">Femenino</option>
-                <option value="O">Otro</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-              <input type="text" value={patientForm.phone} onChange={(e) => setPatientForm({ ...patientForm, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-              <input type="text" value={patientForm.address} onChange={(e) => setPatientForm({ ...patientForm, address: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
-            </div>
-            <div className="col-span-2 flex gap-3">
-              <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">Registrar</button>
-              <button type="button" onClick={() => setShowPatientForm(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">Cancelar</button>
-            </div>
-          </form>
-        </div>
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
       )}
 
       {showAdmissionForm && (
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Nueva Admisión</h2>
-          <form onSubmit={handleAdmissionSubmit} className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Paciente</label>
-              <select value={admissionForm.patientId} onChange={(e) => setAdmissionForm({ ...admissionForm, patientId: parseInt(e.target.value) })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" required>
-                <option value={0}>Seleccione un paciente</option>
-                {patients.map((p) => (
-                  <option key={p.id} value={p.id}>{p.firstName} {p.lastName} - {p.documentId}</option>
-                ))}
-              </select>
+
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Buscar paciente por número de documento</label>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={searchDoc}
+                onChange={(e) => setSearchDoc(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
+                placeholder="Ingrese número de documento"
+              />
+              <button
+                type="button"
+                onClick={searchPatient}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer"
+              >
+                Buscar
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Razón de Admisión</label>
-              <input type="text" value={admissionForm.reason} onChange={(e) => setAdmissionForm({ ...admissionForm, reason: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" required />
+            {foundPatient && (
+              <p className="mt-2 text-sm text-green-700">
+                Paciente encontrado: {foundPatient.firstName} {foundPatient.middleName || ""} {foundPatient.lastName} {foundPatient.secondLastName || ""}
+              </p>
+            )}
+          </div>
+
+          {showPatientForm && (
+            <div className="mb-6">
+              <h3 className="text-md font-semibold text-gray-700 mb-3">
+                {foundPatient ? "Datos del Paciente" : "Registrar Nuevo Paciente"}
+              </h3>
+              <form onSubmit={handlePatientSubmit} className="space-y-4">
+                <div className="grid grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Tipo Doc.</label>
+                    <select value={patientForm.documentType} onChange={(e) => setPatientForm({ ...patientForm, documentType: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800">
+                      {DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">No. Identificación</label>
+                    <input type="text" value={patientForm.documentId} onChange={(e) => setPatientForm({ ...patientForm, documentId: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Primer Nombre</label>
+                    <input type="text" value={patientForm.firstName} onChange={(e) => setPatientForm({ ...patientForm, firstName: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Segundo Nombre</label>
+                    <input type="text" value={patientForm.middleName} onChange={(e) => setPatientForm({ ...patientForm, middleName: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Primer Apellido</label>
+                    <input type="text" value={patientForm.lastName} onChange={(e) => setPatientForm({ ...patientForm, lastName: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Segundo Apellido</label>
+                    <input type="text" value={patientForm.secondLastName} onChange={(e) => setPatientForm({ ...patientForm, secondLastName: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Fecha Nacimiento</label>
+                    <input type="date" value={patientForm.birthDate} onChange={(e) => setPatientForm({ ...patientForm, birthDate: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Sexo</label>
+                    <select value={patientForm.gender} onChange={(e) => setPatientForm({ ...patientForm, gender: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800">
+                      <option value="M">Masculino</option>
+                      <option value="F">Femenino</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Estado Civil</label>
+                    <select value={patientForm.maritalStatus} onChange={(e) => setPatientForm({ ...patientForm, maritalStatus: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800">
+                      {MARITAL_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono</label>
+                    <input type="text" value={patientForm.phone} onChange={(e) => setPatientForm({ ...patientForm, phone: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Aseguradora</label>
+                    <input type="text" value={patientForm.insurance} onChange={(e) => setPatientForm({ ...patientForm, insurance: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Régimen</label>
+                    <input type="text" value={patientForm.regime} onChange={(e) => setPatientForm({ ...patientForm, regime: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Ocupación</label>
+                    <input type="text" value={patientForm.occupation} onChange={(e) => setPatientForm({ ...patientForm, occupation: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Ciudad</label>
+                    <input type="text" value={patientForm.city} onChange={(e) => setPatientForm({ ...patientForm, city: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Localidad</label>
+                    <input type="text" value={patientForm.locality} onChange={(e) => setPatientForm({ ...patientForm, locality: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Barrio</label>
+                    <input type="text" value={patientForm.neighborhood} onChange={(e) => setPatientForm({ ...patientForm, neighborhood: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  </div>
+                  <div className="col-span-4">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Dirección</label>
+                    <input type="text" value={patientForm.address} onChange={(e) => setPatientForm({ ...patientForm, address: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  </div>
+                </div>
+                <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
+                  {foundPatient ? "Actualizar Paciente" : "Registrar Paciente"}
+                </button>
+              </form>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
-              <select value={admissionForm.department} onChange={(e) => setAdmissionForm({ ...admissionForm, department: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800">
-                {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
+          )}
+
+          <form onSubmit={handleAdmissionSubmit} className="space-y-4 border-t border-gray-200 pt-4">
+            <h3 className="text-md font-semibold text-gray-700 mb-3">Datos de Admisión</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Médico Asignado (Turno)</label>
+                <select
+                  value={admissionForm.assignedDoctorId}
+                  onChange={(e) => setAdmissionForm({ ...admissionForm, assignedDoctorId: parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
+                >
+                  <option value={0}>Seleccione médico</option>
+                  {doctors.map((d) => (
+                    <option key={d.id} value={d.id}>{d.fullName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+                <select value={admissionForm.department} onChange={(e) => setAdmissionForm({ ...admissionForm, department: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800">
+                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cama</label>
+                <input type="text" value={admissionForm.bed} onChange={(e) => setAdmissionForm({ ...admissionForm, bed: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+              </div>
+              <div className="col-span-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Razón de Admisión</label>
+                <textarea value={admissionForm.reason} onChange={(e) => setAdmissionForm({ ...admissionForm, reason: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" rows={2} required />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Cama</label>
-              <input type="text" value={admissionForm.bed} onChange={(e) => setAdmissionForm({ ...admissionForm, bed: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+
+            <h3 className="text-md font-semibold text-gray-700 mb-3 mt-4">Acompañante</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                <input type="text" value={admissionForm.companionName} onChange={(e) => setAdmissionForm({ ...admissionForm, companionName: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Parentesco</label>
+                <select value={admissionForm.companionRelationship} onChange={(e) => setAdmissionForm({ ...admissionForm, companionRelationship: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800">
+                  <option value="">Seleccione</option>
+                  {RELATIONSHIPS.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                <input type="text" value={admissionForm.companionPhone} onChange={(e) => setAdmissionForm({ ...admissionForm, companionPhone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+              </div>
             </div>
-            <div className="col-span-2 flex gap-3">
-              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">Crear Admisión</button>
-              <button type="button" onClick={() => setShowAdmissionForm(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">Cancelar</button>
+
+            <div className="flex gap-3 pt-2">
+              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition cursor-pointer">Crear Admisión</button>
+              <button type="button" onClick={() => { setShowAdmissionForm(false); setShowPatientForm(false); setFoundPatient(null); }} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">Cancelar</button>
             </div>
           </form>
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Paciente</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Documento</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Razón</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Departamento</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Cama</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Estado</th>
-              <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Acciones</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Paciente</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Documento</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Depto</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Médico</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Estado</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {admissions.map((a) => (
               <tr key={a.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm text-gray-800 font-medium">{a.patientFirstName} {a.patientLastName}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">{a.patientDocumentId}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">{a.reason}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">{a.department}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">{a.bed || "-"}</td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-3 text-sm text-gray-800 font-medium">
+                  {a.patientFirstName} {a.patientMiddleName || ""} {a.patientLastName} {a.patientSecondLastName || ""}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">{a.patientDocumentType} {a.patientDocumentId}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{a.department}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{a.assignedDoctorName || "-"}</td>
+                <td className="px-4 py-3">
                   <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${a.status === "activa" ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"}`}>
                     {a.status === "activa" ? "Activa" : "Cerrada"}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-4 py-3 text-right">
                   {a.status === "activa" && (
                     <button onClick={() => handleDischarge(a.id)} className="text-red-600 hover:text-red-800 text-sm cursor-pointer">Dar de Alta</button>
                   )}

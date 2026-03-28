@@ -8,6 +8,16 @@ export const ROLES = {
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
+export const DOCUMENT_TYPES = [
+  "CC", "TI", "RC", "CE", "AS", "MS", "PS", "PT",
+] as const;
+
+export const GENDERS = ["M", "F"] as const;
+
+export const MARITAL_STATUS = [
+  "Soltero", "Casado", "Viudo", "Union Libre",
+] as const;
+
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
@@ -22,13 +32,23 @@ export const users = sqliteTable("users", {
 
 export const patients = sqliteTable("patients", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  documentType: text("document_type").notNull(),
   documentId: text("document_id").notNull().unique(),
   firstName: text("first_name").notNull(),
+  middleName: text("middle_name"),
   lastName: text("last_name").notNull(),
+  secondLastName: text("second_last_name"),
   birthDate: text("birth_date").notNull(),
   gender: text("gender").notNull(),
-  phone: text("phone"),
+  maritalStatus: text("marital_status"),
   address: text("address"),
+  city: text("city"),
+  locality: text("locality"),
+  neighborhood: text("neighborhood"),
+  phone: text("phone"),
+  insurance: text("insurance"),
+  regime: text("regime"),
+  occupation: text("occupation"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
     () => new Date()
   ),
@@ -42,10 +62,15 @@ export const admissions = sqliteTable("admissions", {
   admittedBy: integer("admitted_by")
     .notNull()
     .references(() => users.id),
+  assignedDoctorId: integer("assigned_doctor_id")
+    .references(() => users.id),
   reason: text("reason").notNull(),
   department: text("department").notNull(),
   bed: text("bed"),
   status: text("status").notNull().default("activa"),
+  companionName: text("companion_name"),
+  companionRelationship: text("companion_relationship"),
+  companionPhone: text("companion_phone"),
   admissionDate: integer("admission_date", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
