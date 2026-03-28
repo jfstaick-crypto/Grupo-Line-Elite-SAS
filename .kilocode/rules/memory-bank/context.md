@@ -1,87 +1,72 @@
-# Active Context: Next.js Starter Template
+# Active Context: Sistema de Gestión Hospitalaria
 
 ## Current State
 
-**Template Status**: ✅ Ready for development
+**Status**: ✅ All 5 modules implemented and functional
 
-The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. It's ready for AI-assisted expansion to build any type of application.
+The system is a complete healthcare management application with authentication, role-based access control, and 5 operational modules.
 
 ## Recently Completed
 
-- [x] Base Next.js 16 setup with App Router
-- [x] TypeScript configuration with strict mode
-- [x] Tailwind CSS 4 integration
-- [x] ESLint configuration
-- [x] Memory bank documentation
-- [x] Recipe system for common features
+- [x] Database schema (users, patients, admissions, transfers, clinicalHistories)
+- [x] Authentication system with iron-session
+- [x] Login page with credential validation
+- [x] Dashboard layout with sidebar navigation
+- [x] Module 1: User management CRUD (admin only)
+- [x] Module 2: Patient admission with patient registration
+- [xModule 3: Patient transfers between departments
+- [x] Module 4: Clinical history with detail view
+- [x] Module 5: Export to PDF (jsPDF) and Excel (xlsx)
+- [x] Role-based access control for all modules
+- [x] Default seed users (admin, admision, medico)
 
-## Current Structure
+## Database Tables
 
-| File/Directory | Purpose | Status |
-|----------------|---------|--------|
-| `src/app/page.tsx` | Home page | ✅ Ready |
-| `src/app/layout.tsx` | Root layout | ✅ Ready |
-| `src/app/globals.css` | Global styles | ✅ Ready |
-| `.kilocode/` | AI context & recipes | ✅ Ready |
+| Table | Purpose |
+|-------|---------|
+| users | System users with roles |
+| patients | Patient records with document ID |
+| admissions | Patient admissions with status tracking |
+| transfers | Inter-department transfers |
+| clinicalHistories | Medical records with diagnosis/treatment |
 
-## Current Focus
+## File Structure
 
-The template is ready. Next steps depend on user requirements:
-
-1. What type of application to build
-2. What features are needed
-3. Design/branding preferences
-
-## Quick Start Guide
-
-### To add a new page:
-
-Create a file at `src/app/[route]/page.tsx`:
-```tsx
-export default function NewPage() {
-  return <div>New page content</div>;
-}
 ```
-
-### To add components:
-
-Create `src/components/` directory and add components:
-```tsx
-// src/components/ui/Button.tsx
-export function Button({ children }: { children: React.ReactNode }) {
-  return <button className="px-4 py-2 bg-blue-600 text-white rounded">{children}</button>;
-}
+src/
+├── app/
+│   ├── login/page.tsx              # Login page
+│   ├── dashboard/
+│   │   ├── layout.tsx              # Dashboard with sidebar
+│   │   ├── page.tsx                # Redirect to admision
+│   │   ├── usuarios/page.tsx       # User management
+│   │   ├── admision/page.tsx       # Patient admission
+│   │   ├── traslados/page.tsx      # Patient transfers
+│   │   ├── historia-clinica/page.tsx # Clinical history
+│   │   └── exportar/page.tsx       # PDF/Excel export
+│   └── api/
+│       ├── auth/                   # Login/logout/session
+│       ├── usuarios/               # Users CRUD
+│       ├── pacientes/              # Patients CRUD
+│       ├── admisiones/             # Admissions CRUD
+│       ├── traslados/              # Transfers CRUD
+│       ├── historias/              # Clinical histories CRUD
+│       └── exportar/               # Export data endpoint
+├── db/
+│   ├── schema.ts                   # Drizzle schema
+│   ├── index.ts                    # DB client
+│   ├── migrate.ts                  # Migration script
+│   └── seed.ts                     # Default users
+└── lib/
+    └── auth.ts                     # Auth utilities
 ```
-
-### To add a database:
-
-Follow `.kilocode/recipes/add-database.md`
-
-### To add API routes:
-
-Create `src/app/api/[route]/route.ts`:
-```tsx
-import { NextResponse } from "next/server";
-
-export async function GET() {
-  return NextResponse.json({ message: "Hello" });
-}
-```
-
-## Available Recipes
-
-| Recipe | File | Use Case |
-|--------|------|----------|
-| Add Database | `.kilocode/recipes/add-database.md` | Data persistence with Drizzle + SQLite |
-
-## Pending Improvements
-
-- [ ] Add more recipes (auth, email, etc.)
-- [ ] Add example components
-- [ ] Add testing setup recipe
 
 ## Session History
 
 | Date | Changes |
 |------|---------|
-| Initial | Template created with base setup |
+| 2026-03-28 | Complete healthcare management system built with 5 modules |
+
+## Current Focus
+
+All modules are implemented and passing typecheck + lint. Ready for use.

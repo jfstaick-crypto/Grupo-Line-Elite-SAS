@@ -1,48 +1,61 @@
-# Project Brief: Next.js Starter Template
+# Project Brief: Sistema de Gestión Hospitalaria
 
 ## Purpose
 
-This is a minimal Next.js starter template designed for AI-assisted development. It provides a clean foundation that can be extended to build any type of web application through interaction with an AI assistant.
+Healthcare management system for patient transfers and clinical history. Handles user management with role-based access, patient admissions, transfers between departments, clinical history records, and data export in PDF/Excel formats.
 
 ## Target Users
 
-- Developers wanting a clean Next.js starting point
-- Users building applications through AI-assisted coding
-- Teams needing a standardized, modern Next.js setup
+- Administrators with full system access
+- Admission staff for patient registration and admission management
+- Medical staff for clinical history and patient transfers
 
-## Core Use Case
+## Core Modules
 
-Users describe what they want to build to an AI assistant, which then expands this template by:
+### Module 1: User Management (Administrador only)
+- Create/edit/deactivate users
+- Assign role profiles: administrador, admision, medico
 
-1. Adding components and pages as needed
-2. Installing additional dependencies
-3. Setting up databases, authentication, etc. using recipes
-4. Customizing styling and branding
+### Module 2: Patient Admission
+- Register new patients with document ID
+- Create admissions with department, bed, reason
+- Discharge patients
+
+### Module 3: Patient Transfers
+- Transfer patients between departments
+- Record transfer reason and responsible staff
+
+### Module 4: Clinical History
+- Record diagnoses, symptoms, treatment
+- Track vital signs and notes
+- View patient history details
+
+### Module 5: Export (PDF & Excel)
+- Export admissions, transfers, and clinical histories
+- Generate PDF reports with jsPDF
+- Generate Excel files with xlsx
+
+## Role-Based Access
+
+| Module | Administrador | Admisión | Médico |
+|--------|:---:|:---:|:---:|
+| Usuarios | ✅ | ❌ | ❌ |
+| Admisión | ✅ | ✅ | ✅ |
+| Traslados | ✅ | ❌ | ✅ |
+| Historia Clínica | ✅ | ❌ | ✅ |
+| Exportar | ✅ | ✅ | ❌ |
+
+## Default Users
+
+| Username | Password | Role |
+|----------|----------|------|
+| admin | admin123 | administrador |
+| admision | admision123 | admision |
+| medico | medico123 | medico |
 
 ## Key Requirements
 
-### Must Have
-
-- Modern Next.js 16 setup with App Router
-- TypeScript for type safety
-- Tailwind CSS 4 for styling
-- ESLint for code quality
-- Clean, minimal starting structure
-- Bun as package manager
-
-### Nice to Have
-
-- Recipe system for common additions (database, auth)
-- Memory bank for AI context persistence
-- Clear development guidelines
-
-## Success Metrics
-
-- Clean, zero-error TypeScript setup
-- Passing lint and type checks
-
-## Constraints
-
-- Minimal dependencies by default
-- Framework: Next.js 16 + React 19 + Tailwind CSS 4
-- Package manager: Bun
+- Session-based authentication with iron-session
+- SQLite database with Drizzle ORM
+- Spanish language UI
+- Responsive sidebar navigation

@@ -1,0 +1,102 @@
+import { NextResponse } from "next/server";
+import { db } from "@/db";
+import { admissions, patients, users } from "@/db/schema";
+import { getSession, hasPermission } from "@/lib/auth";
+import { eq } from "drizzle-orm";
+
+export async function GET() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.role, "admision")) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
+
+  const allAdmissions = await db
+    .select({
+      id: admissions.id,
+      patientId: admissions.patientId,
+      reason: admissions.reason,
+      department: admissions.department,
+      bed: admissions.bed,
+      status: admissions.status,
+      admissionDate: admissions.admissionDate,
+      dischargeDate: admissions.dischargeDate,
+      patientFirstName: patients.firstName,
+      patientLastName: patients.lastName,
+      patientDocumentId: patients.documentId,
+      admittedByName: users.fullName,
+    })
+    .from(admissions)
+    .leftJoin(patients, eq(admissions.patientId, patients.id))
+    .leftJoin(users, eq(admissions.admittedBy, users.id));
+
+  return NextResponse.json(allAdmissions);
+}
+
+export async function POST(request: Request) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.role, "admision")) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
+
+  try {
+    const body = await request.json();
+    const { patientId, reason, department, bed } = body;
+
+    if (!patientId || !reason || !department) {
+      return NextResponse.json(
+        { error: "Paciente, razón y departamento son requeridos" },
+        { status: 400 }
+      );
+    }
+
+    await db.insert(admissions).values({
+      patientId,
+      admittedBy: session.userId,
+      reason,
+      department,
+      bed: bed || null,
+      status: "activa",
+    });
+
+    return NextResponse.json({ success: true }, { status: 201 });
+  } catch (error) {
+    console.error("Create admission error:", error);
+    return NextResponse.json(
+      { error: "Error al crear admisión" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: Request) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.role, "admision")) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
+
+  try {
+    const body = await request.json();
+    const { id, status } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "ID es requerido" }, { status: 400 });
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (status) {
+      updateData.status = status;
+      if (status === "cerrada") {
+        updateData.dischargeDate = new Date();
+      }
+    }
+
+    await db.update(admissions).set(updateData).where(eq(admissions.id, id));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Update admission error:", error);
+    return NextResponse.json(
+      { error: "Error al actualizar admisión" },
+      { status: 500 }
+    );
+  }
+}
