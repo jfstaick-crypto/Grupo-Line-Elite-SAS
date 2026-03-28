@@ -1,22 +1,51 @@
 import { NextResponse } from "next/server";
+import { createDatabase } from "@kilocode/app-builder-db";
+import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sealData } from "iron-session";
 
 export const dynamic = "force-dynamic";
 
-const SESSION_PASSWORD =
-  "complex_password_at_least_32_characters_long_for_security";
 const COOKIE_NAME = "si";
+const SESSION_PASSWORD = "complex_password_at_least_32_characters_long_for_security";
+
+function getDatabase() {
+  const url = process.env.DB_URL;
+  const token = process.env.DB_TOKEN;
+
+  if (!url || !token) {
+    throw new Error(`DB not configured: URL=${url ? "OK" : "MISSING"}, TOKEN=${token ? "OK" : "MISSING"}`);
+  }
+
+  return createDatabase(schema);
+}
 
 export async function POST(request: Request) {
   try {
-    const { getDb } = await import("@/db");
-    const { users } = await import("@/db/schema");
-    const db = getDb();
+    const body = await request.json();
+    const { username, password } = body;
 
-    const existingUsers = await db.select().from(users).limit(1);
+    if (!username || !password) {
+      return NextResponse.json(
+        { error: "Usuario y contraseña son requeridos" },
+        { status: 400 }
+      );
+    }
+
+    let db;
+    try {
+      db = getDatabase();
+    } catch (dbError) {
+      console.error("Database init error:", dbError);
+      return NextResponse.json(
+        { error: "Base de datos no configurada" },
+        { status: 500 }
+      );
+    }
+
+    const existingUsers = await db.select().from(schema.users).limit(1);
     if (existingUsers.length === 0) {
-      await db.insert(users).values([
+      await db.insert(schema.users).values([
         {
           username: "admin",
           password: "admin123",
@@ -41,20 +70,10 @@ export async function POST(request: Request) {
       ]);
     }
 
-    const body = await request.json();
-    const { username, password } = body;
-
-    if (!username || !password) {
-      return NextResponse.json(
-        { error: "Usuario y contraseña son requeridos" },
-        { status: 400 }
-      );
-    }
-
     const foundUsers = await db
       .select()
-      .from(users)
-      .where(eq(users.username, username))
+      .from(schema.users)
+      .where(eq(schema.users.username, username))
       .limit(1);
 
     if (foundUsers.length === 0) {
@@ -72,24 +91,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const encrypted = await sealData(
-      {
-        userId: user.id,
-        username: user.username,
-        fullName: user.fullName,
-        role: user.role,
-      },
-      { password: SESSION_PASSWORD }
-    );
+    const sessionData = {
+      userId: user.id,
+      username: user.username,
+      fullName: user.fullName,
+      role: user.role,
+    };
+
+    const encrypted = await sealData(sessionData, {
+      password: SESSION_PASSWORD,
+    });
 
     const response = NextResponse.json({
       success: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        fullName: user.fullName,
-        role: user.role,
-      },
+      user: sessionData,
     });
 
     response.cookies.set(COOKIE_NAME, encrypted, {
@@ -103,8 +118,9 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error("Login error:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Error interno del servidor" },
+      { error: `Error: ${message}` },
       { status: 500 }
     );
   }

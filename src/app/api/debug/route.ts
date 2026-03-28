@@ -6,18 +6,27 @@ export async function GET() {
   const results: Record<string, unknown> = {};
 
   results.env = {
-    DB_URL: process.env.DB_URL ? "SET" : "NOT SET",
-    DB_TOKEN: process.env.DB_TOKEN ? "SET" : "NOT SET",
+    DB_URL: process.env.DB_URL ? `SET (${process.env.DB_URL.substring(0, 30)}...)` : "NOT SET",
+    DB_TOKEN: process.env.DB_TOKEN ? `SET (${process.env.DB_TOKEN.substring(0, 10)}...)` : "NOT SET",
     NODE_ENV: process.env.NODE_ENV,
   };
 
   try {
-    const { getDb } = await import("@/db");
-    const db = getDb();
+    const { createDatabase } = await import("@kilocode/app-builder-db");
+    const schema = await import("@/db/schema");
+
+    const url = process.env.DB_URL;
+    const token = process.env.DB_TOKEN;
+
+    if (!url || !token) {
+      results.error = "DB_URL or DB_TOKEN not set";
+      return NextResponse.json(results);
+    }
+
+    const db = createDatabase(schema);
     results.dbInit = "OK";
 
-    const { users } = await import("@/db/schema");
-    const allUsers = await db.select().from(users).limit(5);
+    const allUsers = await db.select().from(schema.users).limit(5);
     results.dbQuery = "OK";
     results.userCount = allUsers.length;
     results.users = allUsers.map((u) => ({
@@ -27,10 +36,8 @@ export async function GET() {
       active: u.active,
     }));
   } catch (error) {
-    results.dbError =
-      error instanceof Error ? error.message : String(error);
-    results.dbStack =
-      error instanceof Error ? error.stack : undefined;
+    results.error = error instanceof Error ? error.message : String(error);
+    results.stack = error instanceof Error ? error.stack?.substring(0, 500) : undefined;
   }
 
   return NextResponse.json(results);
