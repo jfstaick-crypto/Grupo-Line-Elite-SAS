@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CIE10 } from "@/data/cie10";
+import { CUPS } from "@/data/cups";
 
 interface Admission {
   id: number;
@@ -103,6 +104,7 @@ export default function TrasladosPage() {
 
   const [form, setForm] = useState(emptyForm);
   const [cie10Search, setCie10Search] = useState("");
+  const [cupsSearch, setCupsSearch] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -335,13 +337,49 @@ export default function TrasladosPage() {
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="relative">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Código CUPS</label>
-                  <input type="text" value={form.cupsCode} onChange={(e) => set("cupsCode", e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" placeholder="Ej: 890201" />
+                  <input
+                    type="text"
+                    value={cupsSearch || form.cupsCode}
+                    onChange={(e) => setCupsSearch(e.target.value)}
+                    onFocus={() => { if (!cupsSearch && form.cupsCode) setCupsSearch(""); }}
+                    placeholder="Buscar por código o descripción..."
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                  />
+                  {cupsSearch && (
+                    <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
+                      {CUPS
+                        .filter((c) =>
+                          c.code.includes(cupsSearch) ||
+                          c.description.toLowerCase().includes(cupsSearch.toLowerCase())
+                        )
+                        .slice(0, 15)
+                        .map((c) => (
+                          <div
+                            key={c.code}
+                            onClick={() => {
+                              setForm({ ...form, cupsCode: c.code, cupsDescription: c.description });
+                              setCupsSearch("");
+                            }}
+                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex justify-between gap-2"
+                          >
+                            <span className="text-gray-700">{c.description}</span>
+                            <span className="text-gray-400 text-xs whitespace-nowrap">{c.code}</span>
+                          </div>
+                        ))}
+                      {CUPS.filter((c) =>
+                        c.code.includes(cupsSearch) ||
+                        c.description.toLowerCase().includes(cupsSearch.toLowerCase())
+                      ).length === 0 && (
+                        <div className="px-3 py-2 text-sm text-gray-400">No se encontraron códigos</div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Descripción CUPS</label>
-                  <input type="text" value={form.cupsDescription} onChange={(e) => set("cupsDescription", e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" placeholder="Ej: Consulta de urgencias" />
+                  <input type="text" value={form.cupsDescription} readOnly className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm" />
                 </div>
               </div>
             </div>

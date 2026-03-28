@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     const db = getDb();
 
     const body = await request.json();
-    const { username, password, fullName, role, signature } = body;
+    const { username, password, fullName, role, address, phone, email, signature } = body;
 
     if (!username || !password || !fullName || !role) {
       return NextResponse.json(
@@ -92,6 +92,9 @@ export async function POST(request: Request) {
       password,
       fullName,
       role,
+      address: address || null,
+      phone: phone || null,
+      email: email || null,
       signature: signature || null,
       active: true,
     });
@@ -118,7 +121,7 @@ export async function PUT(request: Request) {
     const db = getDb();
 
     const body = await request.json();
-    const { id, username, password, fullName, role, signature, active } = body;
+    const { id, username, password, fullName, role, address, phone, email, signature, active } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID es requerido" }, { status: 400 });
@@ -129,6 +132,9 @@ export async function PUT(request: Request) {
     if (password) updateData.password = password;
     if (fullName) updateData.fullName = fullName;
     if (role) updateData.role = role;
+    if (address !== undefined) updateData.address = address;
+    if (phone !== undefined) updateData.phone = phone;
+    if (email !== undefined) updateData.email = email;
     if (signature !== undefined) updateData.signature = signature;
     if (active !== undefined) updateData.active = active;
 

@@ -32,6 +32,9 @@ export const users = sqliteTable("users", {
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
   role: text("role").notNull().$type<Role>(),
+  address: text("address"),
+  phone: text("phone"),
+  email: text("email"),
   signature: text("signature"),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(

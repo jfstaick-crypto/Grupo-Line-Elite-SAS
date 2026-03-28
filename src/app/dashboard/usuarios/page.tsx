@@ -7,6 +7,9 @@ interface User {
   username: string;
   fullName: string;
   role: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
   signature: string | null;
   active: boolean;
 }
@@ -31,6 +34,9 @@ export default function UsuariosPage() {
     password: "",
     fullName: "",
     role: "admision",
+    address: "",
+    phone: "",
+    email: "",
     signature: "",
   });
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
@@ -61,7 +67,7 @@ export default function UsuariosPage() {
   }, []);
 
   const resetForm = () => {
-    setFormData({ username: "", password: "", fullName: "", role: "admision", signature: "" });
+    setFormData({ username: "", password: "", fullName: "", role: "admision", address: "", phone: "", email: "", signature: "" });
     setSignaturePreview(null);
     setEditingUser(null);
     setShowForm(false);
@@ -107,6 +113,9 @@ export default function UsuariosPage() {
       password: "",
       fullName: user.fullName,
       role: user.role,
+      address: user.address || "",
+      phone: user.phone || "",
+      email: user.email || "",
       signature: user.signature || "",
     });
     setSignaturePreview(user.signature || null);
@@ -232,6 +241,45 @@ export default function UsuariosPage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Dirección
+              </label>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Celular
+              </label>
+              <input
+                type="text"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Correo Electrónico
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
+              />
             </div>
             {SIGNATURE_ROLES.includes(formData.role) && (
               <div className="col-span-2">
