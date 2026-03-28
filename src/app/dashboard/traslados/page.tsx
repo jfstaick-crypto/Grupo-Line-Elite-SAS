@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { CIE10 } from "@/data/cie10";
 
 interface Admission {
   id: number;
@@ -101,6 +102,7 @@ export default function TrasladosPage() {
   const [error, setError] = useState("");
 
   const [form, setForm] = useState(emptyForm);
+  const [cie10Search, setCie10Search] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -272,8 +274,46 @@ export default function TrasladosPage() {
                   <input type="text" value={form.authorizationNumber} onChange={(e) => set("authorizationNumber", e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
                 </div>
                 <div className="col-span-3">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Diagnóstico</label>
-                  <input type="text" value={form.diagnosis} onChange={(e) => set("diagnosis", e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Diagnóstico (CIE-10)</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={cie10Search || form.diagnosis}
+                      onChange={(e) => setCie10Search(e.target.value)}
+                      onFocus={() => { if (!cie10Search && form.diagnosis) setCie10Search(""); }}
+                      placeholder="Buscar por código o nombre..."
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    />
+                    {cie10Search && (
+                      <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
+                        {CIE10
+                          .filter((c) =>
+                            c.code.toLowerCase().includes(cie10Search.toLowerCase()) ||
+                            c.description.toLowerCase().includes(cie10Search.toLowerCase())
+                          )
+                          .slice(0, 15)
+                          .map((c) => (
+                            <div
+                              key={c.code}
+                              onClick={() => {
+                                setForm({ ...form, diagnosis: `${c.code} - ${c.description}` });
+                                setCie10Search("");
+                              }}
+                              className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex justify-between gap-2"
+                            >
+                              <span className="text-gray-700">{c.description}</span>
+                              <span className="text-gray-400 text-xs whitespace-nowrap">{c.code}</span>
+                            </div>
+                          ))}
+                        {CIE10.filter((c) =>
+                          c.code.toLowerCase().includes(cie10Search.toLowerCase()) ||
+                          c.description.toLowerCase().includes(cie10Search.toLowerCase())
+                        ).length === 0 && (
+                          <div className="px-3 py-2 text-sm text-gray-400">No se encontraron códigos</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Placa Ambulancia</label>

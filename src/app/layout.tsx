@@ -14,8 +14,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Sistema de Gestión - Traslados e Historia Clínica",
-  description: "Sistema de gestión hospitalaria - Traslados e Historia Clínica Asistencial v2",
+  description: "Sistema de gestión hospitalaria - Traslados e Historia Clínica Asistencial v3",
 };
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default function RootLayout({
   children,
