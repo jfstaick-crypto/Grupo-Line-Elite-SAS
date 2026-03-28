@@ -58,9 +58,9 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-800">
-            Sistema de Gestión
+            Grupo Line Elite SAS
           </h1>
-          <p className="text-gray-500 mt-1">Traslados e Historia Clínica</p>
+          <p className="text-gray-500 mt-1">Sistema de Gestión</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">

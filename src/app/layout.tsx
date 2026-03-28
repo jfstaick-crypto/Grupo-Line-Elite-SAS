@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sistema Hospitalario v2 - Traslados e Historia Clínica",
-  description: "Sistema de gestión hospitalaria - Traslados e Historia Clínica Asistencial v3",
+  title: "Grupo Line Elite SAS",
+  description: "Sistema de gestión hospitalaria - Grupo Line Elite SAS",
 };
 
 export const dynamic = "force-dynamic";
