@@ -1,12 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type ExportType = "admissions" | "transfers" | "histories" | "rips_indicators";
 
+interface CompanyData {
+  name: string;
+  nit: string;
+  habilitacionCode: string;
+  address: string;
+  phone: string;
+  email: string;
+  website: string;
+  city: string;
+  logo: string | null;
+}
+
 const EXPORT_LABELS: Record<string, string> = {
   admissions: "Admisiones",
-  transfers: "Traslados",
+  transfers: "Formato de Traslado",
   histories: "Historias Clínicas",
   rips_indicators: "Indicadores RIPS",
 };
@@ -18,6 +30,32 @@ export default function ExportarPage() {
   const [searchDate, setSearchDate] = useState("");
   const [searchResults, setSearchResults] = useState<Record<string, unknown>[]>([]);
   const [searching, setSearching] = useState(false);
+  const [company, setCompany] = useState<CompanyData | null>(null);
+
+  useEffect(() => {
+    fetch("/api/empresa").then(r => r.json()).then(setCompany).catch(() => {});
+  }, []);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const addCompanyHeader = (doc: any, startY: number = 15) => {
+    let y = startY;
+    if (company?.logo) {
+      try { doc.addImage(company.logo, "JPEG", 14, y - 5, 20, 20); } catch {}
+    }
+    const xText = company?.logo ? 38 : 14;
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text(company?.name || "EMPRESA DE SALUD", xText, y);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text(`NIT: ${company?.nit || "N/A"}  |  Habilitación: ${company?.habilitacionCode || "N/A"}`, xText, y + 5);
+    doc.text(`${company?.address || ""} ${company?.city ? "- " + company.city : ""}`, xText, y + 9);
+    doc.text(`Tel: ${company?.phone || ""}  |  Email: ${company?.email || ""}  |  Web: ${company?.website || ""}`, xText, y + 13);
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    doc.line(14, y + 17, 196, y + 17);
+    return y + 22;
+  };
 
   const fetchData = async (type: string) => {
     const res = await fetch(`/api/exportar?type=${type}`);
@@ -48,13 +86,6 @@ export default function ExportarPage() {
             );
             results.push(...filtered.map((h: Record<string, unknown>) => ({ ...h, type: "historia" })));
           }
-          if (admRes.ok) {
-            const admissions = await admRes.json();
-            const filtered = admissions.filter(
-              (a: Record<string, unknown>) => a.patientDocumentId === searchDoc
-            );
-            results.push(...filtered.map((a: Record<string, unknown>) => ({ ...a, type: "admision" })));
-          }
           setSearchResults(results);
         } else {
           setSearchResults([]);
@@ -68,21 +99,24 @@ export default function ExportarPage() {
     }
   };
 
-  const exportSinglePDF = async (record: Record<string, unknown>) => {
+  const exportSingleHistoryPDF = async (record: Record<string, unknown>) => {
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text("HISTORIA CLÍNICA", 105, 15, { align: "center" });
-    doc.setFontSize(10);
-    doc.text(`Fecha: ${new Date().toLocaleDateString("es-ES")}`, 14, 25);
+    let y = addCompanyHeader(doc);
 
-    let y = 35;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("HISTORIA CLÍNICA", 105, y, { align: "center" });
+    y += 10;
+
+    doc.setFontSize(10);
     const addField = (label: string, value: string) => {
       doc.setFont("helvetica", "bold");
       doc.text(`${label}:`, 14, y);
       doc.setFont("helvetica", "normal");
-      doc.text(value || "-", 60, y);
-      y += 7;
+      const lines = doc.splitTextToSize(value || "-", 130);
+      doc.text(lines, 60, y);
+      y += lines.length * 5 + 2;
     };
 
     addField("Paciente", `${record.patientFirstName} ${record.patientLastName}`);
@@ -91,8 +125,50 @@ export default function ExportarPage() {
     addField("Síntomas", record.symptoms as string);
     addField("Tratamiento", record.treatment as string);
     addField("Médico", record.doctorName as string);
-    addField("Signos Vitales", record.vitalSigns as string);
-    addField("Notas", record.notes as string);
+
+    if (record.dischargeConditions) {
+      try {
+        const dc = JSON.parse(record.dischargeConditions as string);
+        y += 3;
+        doc.setFont("helvetica", "bold");
+        doc.text("CONDICIONES A LA SALIDA:", 14, y);
+        y += 6;
+        doc.setFont("helvetica", "normal");
+        addField("Glasgow", dc.glasgow);
+        addField("Consciencia", dc.consciousness);
+        addField("FC", dc.fc ? `${dc.fc} lpm` : "-");
+        addField("PA", dc.pa ? `${dc.pa} mmHg` : "-");
+        addField("PR", dc.pr ? `${dc.pr} rpm` : "-");
+        addField("Temperatura", dc.temperatura ? `${dc.temperatura} °C` : "-");
+        addField("SatO2", dc.satO2 ? `${dc.satO2}%` : "-");
+        addField("Alergias", dc.alergias || "Ninguna");
+        addField("Acceso Venoso", dc.accesoVenoso);
+        addField("Oxígeno", dc.oxigeno);
+        addField("Sonda Vesical", dc.sondaVesical);
+      } catch {}
+    }
+
+    if (record.evolutions) {
+      try {
+        const evos = JSON.parse(record.evolutions as string);
+        if (evos.length > 0) {
+          y += 3;
+          doc.setFont("helvetica", "bold");
+          doc.text("EVOLUCIONES:", 14, y);
+          y += 6;
+          doc.setFont("helvetica", "normal");
+          evos.forEach((evo: { fecha: string; hora: string; observacion: string }) => {
+            if (y > 270) { doc.addPage(); y = 20; }
+            doc.text(`${evo.fecha} ${evo.hora}: ${evo.observacion}`, 14, y);
+            y += 5;
+          });
+        }
+      } catch {}
+    }
+
+    if (record.notes) {
+      addField("Notas", record.notes as string);
+    }
 
     doc.save(`historia_${record.patientDocumentId}_${new Date().toISOString().split("T")[0]}.pdf`);
   };
@@ -104,44 +180,54 @@ export default function ExportarPage() {
       const data = await fetchData(type);
       const { jsPDF } = await import("jspdf");
       const autoTable = (await import("jspdf-autotable")).default;
-      const doc = new jsPDF();
+      const doc = new jsPDF("landscape");
+      let y = addCompanyHeader(doc);
 
-      doc.setFontSize(16);
-      doc.text(`Reporte de ${EXPORT_LABELS[type]}`, 14, 20);
-      doc.setFontSize(10);
-      doc.text(`Fecha: ${new Date().toLocaleDateString("es-ES")}`, 14, 28);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Reporte de ${EXPORT_LABELS[type]}`, 148, y, { align: "center" });
+      y += 5;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Fecha de generación: ${new Date().toLocaleDateString("es-ES")} ${new Date().toLocaleTimeString("es-ES")}`, 148, y, { align: "center" });
+      y += 8;
 
       let columns: string[] = [];
       let rows: string[][] = [];
 
       if (type === "admissions") {
-        columns = ["Paciente", "Documento", "Razón", "Departamento", "Médico", "Estado"];
+        columns = ["Paciente", "Documento", "Razón", "Depto", "Cama", "Médico", "Estado"];
         rows = data.map((d: Record<string, unknown>) => [
-          `${d.patientName} ${d.patientLastName}`,
-          d.documentId as string,
+          `${d.patientName || d.patientFirstName || ""} ${d.patientLastName || ""}`,
+          (d.documentId || d.patientDocumentId || "") as string,
           d.reason as string,
           d.department as string,
-          (d.dischargedBy as string) || "-",
+          (d.bed as string) || "-",
+          (d.dischargedBy || d.assignedDoctorName || "-") as string,
           d.status as string,
         ]);
       } else if (type === "transfers") {
-        columns = ["Paciente", "Doc", "Origen", "Destino", "Diagnóstico", "Tipo Amb", "Estado"];
+        columns = ["Paciente", "Doc", "Origen", "Destino", "Diagnóstico", "CUPS", "Amb", "Estado", "Conductor", "Médico"];
         rows = data.map((d: Record<string, unknown>) => [
-          `${d.patientName} ${d.patientLastName}`,
-          d.documentId as string,
+          `${d.patientName || ""} ${d.patientLastName || ""}`,
+          (d.documentId || "") as string,
           `${d.originCity || ""} - ${d.originInstitution || ""}`,
           `${d.destinationCity || ""} - ${d.destinationInstitution || ""}`,
-          (d.diagnosis as string) || "-",
-          d.ambulancePlate ? "TAM/TAB" : "-",
-          d.status as string,
+          (d.diagnosis || "-") as string,
+          (d.cupsCode || "-") as string,
+          (d.ambulancePlate || "-") as string,
+          (d.status || "-") as string,
+          (d.driverName || "-") as string,
+          (d.doctorName || "-") as string,
         ]);
       } else if (type === "histories") {
-        columns = ["Paciente", "Documento", "Diagnóstico", "Médico", "Fecha"];
+        columns = ["Paciente", "Documento", "Diagnóstico", "Médico", "Depto", "Fecha"];
         rows = data.map((d: Record<string, unknown>) => [
-          `${d.patientName} ${d.patientLastName}`,
-          d.documentId as string,
-          d.diagnosis as string,
-          d.doctorName as string,
+          `${d.patientName || d.patientFirstName || ""} ${d.patientLastName || ""}`,
+          (d.documentId || d.patientDocumentId || "") as string,
+          (d.diagnosis as string).substring(0, 40),
+          (d.doctorName || d.doctor_id || "-") as string,
+          (d.department || "-") as string,
           d.createdAt ? new Date(d.createdAt as string).toLocaleDateString("es-ES") : "-",
         ]);
       } else if (type === "rips_indicators") {
@@ -151,15 +237,17 @@ export default function ExportarPage() {
       }
 
       autoTable(doc, {
-        startY: 35,
+        startY: y,
         head: columns.length > 0 ? [columns] : undefined,
         body: rows,
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [37, 99, 235] },
+        styles: { fontSize: 7 },
+        headStyles: { fillColor: [37, 99, 235], fontSize: 7 },
+        margin: { top: y },
       });
 
       doc.save(`${type}_${new Date().toISOString().split("T")[0]}.pdf`);
-    } catch {
+    } catch (e) {
+      console.error(e);
       setError(`Error al exportar ${EXPORT_LABELS[type]} a PDF`);
     } finally {
       setLoading({ ...loading, [type + "_pdf"]: false });
@@ -172,48 +260,60 @@ export default function ExportarPage() {
     try {
       const data = await fetchData(type);
       const XLSX = await import("xlsx");
-
       let formattedData: Record<string, unknown>[] = [];
 
-      if (type === "admissions") {
+      if (type === "transfers") {
         formattedData = data.map((d: Record<string, unknown>) => ({
-          Paciente: `${d.patientName} ${d.patientLastName}`,
-          Documento: d.documentId,
-          Razón: d.reason,
-          Departamento: d.department,
-          Médico: d.dischargedBy || "-",
-          Estado: d.status,
-        }));
-      } else if (type === "transfers") {
-        formattedData = data.map((d: Record<string, unknown>) => ({
-          Paciente: `${d.patientName} ${d.patientLastName}`,
-          Documento: d.documentId,
-          "Ciu. Origen": d.originCity,
+          "Paciente": `${d.patientName} ${d.patientLastName}`,
+          "Documento": d.documentId,
+          "Ciudad Origen": d.originCity,
           "Inst. Origen": d.originInstitution,
-          "Ciu. Destino": d.destinationCity,
+          "Tel. Origen": d.originPhone || "-",
+          "Ciudad Destino": d.destinationCity,
           "Inst. Destino": d.destinationInstitution,
-          Diagnóstico: d.diagnosis,
+          "Tel. Destino": d.destinationPhone || "-",
+          "N° Autorización": d.authorizationNumber || "-",
+          "Diagnóstico": d.diagnosis,
+          "Placa Ambulancia": d.ambulancePlate || "-",
+          "Tipo Amb": d.tam || d.tab || "-",
+          "Fecha Solicitud": d.requestDate || "-",
+          "Entidad Pago": d.responsibleEntity || "-",
+          "Hora Llamado": d.callTime || "-",
+          "Hora Promesa": d.promiseTime || "-",
+          "Fecha Recogida": d.pickupDate || "-",
+          "Hora Recogida": d.pickupTime || "-",
+          "Lugar Recogida": d.pickupLocation || "-",
+          "Hora Llegada IPS Origen": d.arrivalIpsOriginTime || "-",
+          "Lugar Destino": d.destinationLocation || "-",
+          "Hora Llegada IPS Destino": d.arrivalIpsDestinationTime || "-",
+          "Fecha Entrega": d.deliveryDate || "-",
+          "Hora Entrega": d.deliveryTime || "-",
+          "Fecha Retorno": d.returnDate || "-",
+          "Hora Retorno": d.returnTime || "-",
+          "Conductor": d.driverName || "-",
+          "Auxiliar/APH": d.auxiliaryName || "-",
+          "Doc. Auxiliar": d.auxiliaryDocument || "-",
+          "Médico": d.doctorName || "-",
+          "Doc. Médico": d.doctorDocument || "-",
           "CUPS": d.cupsCode || "-",
-          Estado: d.status,
-          Conductor: d.driverName || "-",
-          Médico: d.doctorName || "-",
+          "Desc. CUPS": d.cupsDescription || "-",
+          "Valor": d.value || "-",
+          "Estado": d.status,
+          "Registrado por": d.transferredBy,
         }));
       } else if (type === "histories") {
         formattedData = data.map((d: Record<string, unknown>) => ({
-          Paciente: `${d.patientName} ${d.patientLastName}`,
-          Documento: d.documentId,
-          Diagnóstico: d.diagnosis,
-          Síntomas: d.symptoms,
-          Tratamiento: d.treatment,
-          Médico: d.doctorName,
+          "Paciente": `${d.patientName} ${d.patientLastName}`,
+          "Documento": d.documentId,
+          "Diagnóstico": d.diagnosis,
+          "Síntomas": d.symptoms,
+          "Tratamiento": d.treatment,
+          "Médico": d.doctorName,
           "Signos Vitales": d.vitalSigns || "-",
+          "Notas": d.notes || "-",
         }));
-      } else if (type === "rips_indicators") {
-        const indicators = generateRIPSIndicators(data);
-        formattedData = indicators.map((i) => ({
-          Indicador: i.name,
-          Valor: i.value,
-        }));
+      } else {
+        formattedData = data;
       }
 
       const ws = XLSX.utils.json_to_sheet(formattedData);
@@ -221,7 +321,7 @@ export default function ExportarPage() {
       XLSX.utils.book_append_sheet(wb, ws, EXPORT_LABELS[type]);
       XLSX.writeFile(wb, `${type}_${new Date().toISOString().split("T")[0]}.xlsx`);
     } catch {
-      setError(`Error al exportar ${EXPORT_LABELS[type]} a Excel`);
+      setError(`Error al exportar a Excel`);
     } finally {
       setLoading({ ...loading, [type + "_excel"]: false });
     }
@@ -233,79 +333,51 @@ export default function ExportarPage() {
     const pendientes = data.filter((d) => d.status === "pendiente").length;
     const enProceso = data.filter((d) => d.status === "en_proceso").length;
     const cancelados = data.filter((d) => d.status === "cancelado").length;
-
     const byInstitution: Record<string, number> = {};
     data.forEach((d) => {
       const inst = (d.destinationInstitution as string) || "Sin especificar";
       byInstitution[inst] = (byInstitution[inst] || 0) + 1;
     });
-
-    const byCity: Record<string, number> = {};
-    data.forEach((d) => {
-      const city = (d.destinationCity as string) || "Sin especificar";
-      byCity[city] = (byCity[city] || 0) + 1;
-    });
-
     return [
       { name: "Total de Traslados", value: total },
-      { name: "Traslados Completados", value: completados },
-      { name: "Traslados Pendientes", value: pendientes },
-      { name: "Traslados En Proceso", value: enProceso },
-      { name: "Traslados Cancelados", value: cancelados },
+      { name: "Completados", value: completados },
+      { name: "Pendientes", value: pendientes },
+      { name: "En Proceso", value: enProceso },
+      { name: "Cancelados", value: cancelados },
       { name: "% Completados", value: total > 0 ? `${((completados / total) * 100).toFixed(1)}%` : "0%" },
-      { name: "--- Por Institución Destino ---", value: "" },
       ...Object.entries(byInstitution).map(([k, v]) => ({ name: k, value: v })),
-      { name: "--- Por Ciudad Destino ---", value: "" },
-      ...Object.entries(byCity).map(([k, v]) => ({ name: k, value: v })),
     ];
   };
 
   const exportOptions = [
-    { type: "admissions", description: "Listado completo de admisiones de pacientes", icon: "📋" },
-    { type: "transfers", description: "Historial de traslados interinstitucionales", icon: "🚑" },
-    { type: "histories", description: "Historias clínicas con diagnósticos y tratamientos", icon: "📝" },
-    { type: "rips_indicators", description: "Indicadores de traslado asistencial según norma vigente", icon: "📊" },
+    { type: "admissions", description: "Listado de admisiones con encabezado institucional", icon: "📋" },
+    { type: "transfers", description: "Formato de traslado según normatividad vigente", icon: "🚑" },
+    { type: "histories", description: "Historias clínicas completas con condiciones de salida", icon: "📝" },
+    { type: "rips_indicators", description: "Indicadores de gestión de traslados", icon: "📊" },
   ];
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Exportar Información</h1>
-        <p className="text-gray-500 text-sm">Descargue reportes y busque historias por paciente</p>
+        <p className="text-gray-500 text-sm">Reportes con encabezado institucional y firma</p>
       </div>
 
-      {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
-      )}
+      {error && <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Buscar Historia por Paciente</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Número de Documento</label>
-            <input
-              type="text"
-              value={searchDoc}
-              onChange={(e) => setSearchDoc(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
-              placeholder="Ingrese documento"
-            />
+            <input type="text" value={searchDoc} onChange={(e) => setSearchDoc(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="Ingrese documento" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Fecha (opcional)</label>
-            <input
-              type="date"
-              value={searchDate}
-              onChange={(e) => setSearchDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
-            />
+            <input type="date" value={searchDate} onChange={(e) => setSearchDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
           </div>
           <div className="flex items-end">
-            <button
-              onClick={searchByDocument}
-              disabled={searching || !searchDoc.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer"
-            >
+            <button onClick={searchByDocument} disabled={searching || !searchDoc.trim()} className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer">
               {searching ? "Buscando..." : "Buscar"}
             </button>
           </div>
@@ -318,56 +390,29 @@ export default function ExportarPage() {
               {searchResults.map((r, idx) => (
                 <div key={idx} className="py-3 flex items-center justify-between">
                   <div>
-                    <span className="text-sm font-medium text-gray-800">
-                      {(r.type as string) === "historia" ? "Historia Clínica" : "Admisión"}:
-                    </span>
-                    <span className="text-sm text-gray-600 ml-2">
-                      {(r.diagnosis as string) || (r.reason as string) || "-"}
-                    </span>
-                    <span className="text-xs text-gray-400 ml-2">
-                      {r.createdAt ? new Date(r.createdAt as string).toLocaleDateString("es-ES") : ""}
-                    </span>
+                    <span className="text-sm font-medium text-gray-800">{r.type === "historia" ? "Historia Clínica" : "Registro"}:</span>
+                    <span className="text-sm text-gray-600 ml-2">{(r.diagnosis as string) || "-"}</span>
+                    <span className="text-xs text-gray-400 ml-2">{r.createdAt ? new Date(r.createdAt as string).toLocaleDateString("es-ES") : ""}</span>
                   </div>
-                  {(r.type as string) === "historia" && (
-                    <button
-                      onClick={() => exportSinglePDF(r)}
-                      className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
-                    >
-                      Exportar PDF
-                    </button>
-                  )}
+                  <button onClick={() => exportSingleHistoryPDF(r)} className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer">Exportar PDF</button>
                 </div>
               ))}
             </div>
           </div>
-        )}
-
-        {searchResults.length === 0 && searchDoc && !searching && !error && (
-          <p className="mt-4 text-sm text-gray-400">No se encontraron resultados</p>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {exportOptions.map((opt) => (
           <div key={opt.type} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-4 text-2xl">
-              {opt.icon}
-            </div>
+            <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-4 text-2xl">{opt.icon}</div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">{EXPORT_LABELS[opt.type]}</h3>
             <p className="text-sm text-gray-500 mb-6">{opt.description}</p>
             <div className="flex gap-3">
-              <button
-                onClick={() => exportPDF(opt.type)}
-                disabled={loading[opt.type + "_pdf"]}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer"
-              >
+              <button onClick={() => exportPDF(opt.type)} disabled={loading[opt.type + "_pdf"]} className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer">
                 {loading[opt.type + "_pdf"] ? "..." : "PDF"}
               </button>
-              <button
-                onClick={() => exportExcel(opt.type)}
-                disabled={loading[opt.type + "_excel"]}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer"
-              >
+              <button onClick={() => exportExcel(opt.type)} disabled={loading[opt.type + "_excel"]} className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer">
                 {loading[opt.type + "_excel"] ? "..." : "Excel"}
               </button>
             </div>

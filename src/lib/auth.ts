@@ -5,9 +5,12 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     "traslados",
     "historia-clinica",
     "exportar",
+    "empresa",
   ],
   admision: ["admision", "exportar"],
   medico: ["historia-clinica", "admision", "traslados"],
+  auxiliar_enfermeria: ["historia-clinica", "admision", "traslados"],
+  enfermera_jefe: ["historia-clinica", "admision", "traslados", "exportar"],
 };
 
 export function hasPermission(role: string, module: string): boolean {

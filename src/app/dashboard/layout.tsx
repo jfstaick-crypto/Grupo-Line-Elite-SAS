@@ -60,6 +60,12 @@ const NAV_ITEMS = [
     href: "/dashboard/exportar",
     icon: "📊",
   },
+  {
+    id: "empresa",
+    label: "Empresa",
+    href: "/dashboard/empresa",
+    icon: "🏢",
+  },
 ];
 
 export default function DashboardLayout({

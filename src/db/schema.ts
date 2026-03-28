@@ -175,3 +175,19 @@ export const clinicalHistories = sqliteTable("clinical_histories", {
     () => new Date()
   ),
 });
+
+export const companySettings = sqliteTable("company_settings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().default(""),
+  nit: text("nit").notNull().default(""),
+  habilitacionCode: text("habilitacion_code").notNull().default(""),
+  address: text("address").notNull().default(""),
+  phone: text("phone").notNull().default(""),
+  email: text("email").notNull().default(""),
+  website: text("website").notNull().default(""),
+  city: text("city").notNull().default(""),
+  logo: text("logo"),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});

@@ -142,6 +142,20 @@ export function getDb() {
         created_at INTEGER,
         updated_at INTEGER
       );
+
+      CREATE TABLE IF NOT EXISTS company_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL DEFAULT '',
+        nit TEXT NOT NULL DEFAULT '',
+        habilitacion_code TEXT NOT NULL DEFAULT '',
+        address TEXT NOT NULL DEFAULT '',
+        phone TEXT NOT NULL DEFAULT '',
+        email TEXT NOT NULL DEFAULT '',
+        website TEXT NOT NULL DEFAULT '',
+        city TEXT NOT NULL DEFAULT '',
+        logo TEXT,
+        updated_at INTEGER
+      );
     `);
 
     // Migrate existing tables
