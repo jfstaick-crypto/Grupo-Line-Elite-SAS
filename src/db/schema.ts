@@ -85,12 +85,49 @@ export const transfers = sqliteTable("transfers", {
   patientId: integer("patient_id")
     .notNull()
     .references(() => patients.id),
-  fromDepartment: text("from_department").notNull(),
-  toDepartment: text("to_department").notNull(),
-  reason: text("reason").notNull(),
   transferredBy: integer("transferred_by")
     .notNull()
     .references(() => users.id),
+  authorizationNumber: text("authorization_number"),
+  diagnosis: text("diagnosis"),
+  // Origen
+  originCity: text("origin_city"),
+  originInstitution: text("origin_institution"),
+  originPhone: text("origin_phone"),
+  // Destino
+  destinationCity: text("destination_city"),
+  destinationInstitution: text("destination_institution"),
+  destinationPhone: text("destination_phone"),
+  // Ambulancia
+  ambulancePlate: text("ambulance_plate"),
+  tam: text("tam"),
+  tab: text("tab"),
+  // Timeline del servicio
+  requestDate: text("request_date"),
+  responsibleEntity: text("responsible_entity"),
+  callTime: text("call_time"),
+  promiseTime: text("promise_time"),
+  originDepartureCity: text("origin_departure_city"),
+  pickupLocation: text("pickup_location"),
+  arrivalIpsOriginTime: text("arrival_ips_origin_time"),
+  pickupDate: text("pickup_date"),
+  pickupTime: text("pickup_time"),
+  destinationCityArrival: text("destination_city_arrival"),
+  destinationLocation: text("destination_location"),
+  arrivalIpsDestinationTime: text("arrival_ips_destination_time"),
+  deliveryDate: text("delivery_date"),
+  deliveryTime: text("delivery_time"),
+  returnDate: text("return_date"),
+  returnTime: text("return_time"),
+  // Personal
+  driverName: text("driver_name"),
+  auxiliaryName: text("auxiliary_name"),
+  auxiliaryDocument: text("auxiliary_document"),
+  doctorName: text("doctor_name"),
+  doctorDocument: text("doctor_document"),
+  // Valor y estado
+  value: text("value"),
+  status: text("status").notNull().default("pendiente"),
   transferDate: integer("transfer_date", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

@@ -80,10 +80,41 @@ export function getDb() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         admission_id INTEGER NOT NULL REFERENCES admissions(id),
         patient_id INTEGER NOT NULL REFERENCES patients(id),
-        from_department TEXT NOT NULL,
-        to_department TEXT NOT NULL,
-        reason TEXT NOT NULL,
         transferred_by INTEGER NOT NULL REFERENCES users(id),
+        authorization_number TEXT,
+        diagnosis TEXT,
+        origin_city TEXT,
+        origin_institution TEXT,
+        origin_phone TEXT,
+        destination_city TEXT,
+        destination_institution TEXT,
+        destination_phone TEXT,
+        ambulance_plate TEXT,
+        tam TEXT,
+        tab TEXT,
+        request_date TEXT,
+        responsible_entity TEXT,
+        call_time TEXT,
+        promise_time TEXT,
+        origin_departure_city TEXT,
+        pickup_location TEXT,
+        arrival_ips_origin_time TEXT,
+        pickup_date TEXT,
+        pickup_time TEXT,
+        destination_city_arrival TEXT,
+        destination_location TEXT,
+        arrival_ips_destination_time TEXT,
+        delivery_date TEXT,
+        delivery_time TEXT,
+        return_date TEXT,
+        return_time TEXT,
+        driver_name TEXT,
+        auxiliary_name TEXT,
+        auxiliary_document TEXT,
+        doctor_name TEXT,
+        doctor_document TEXT,
+        value TEXT,
+        status TEXT NOT NULL DEFAULT 'pendiente',
         transfer_date INTEGER NOT NULL
       );
 
@@ -117,6 +148,41 @@ export function getDb() {
     safeAlter(sqlite, "ALTER TABLE admissions ADD COLUMN companion_name TEXT");
     safeAlter(sqlite, "ALTER TABLE admissions ADD COLUMN companion_relationship TEXT");
     safeAlter(sqlite, "ALTER TABLE admissions ADD COLUMN companion_phone TEXT");
+    // Migrate transfers - new fields
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN authorization_number TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN diagnosis TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN origin_city TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN origin_institution TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN origin_phone TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN destination_city TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN destination_institution TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN destination_phone TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN ambulance_plate TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN tam TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN tab TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN request_date TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN responsible_entity TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN call_time TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN promise_time TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN origin_departure_city TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN pickup_location TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN arrival_ips_origin_time TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN pickup_date TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN pickup_time TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN destination_city_arrival TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN destination_location TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN arrival_ips_destination_time TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN delivery_date TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN delivery_time TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN return_date TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN return_time TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN driver_name TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN auxiliary_name TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN auxiliary_document TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN doctor_name TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN doctor_document TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN value TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN status TEXT NOT NULL DEFAULT 'pendiente'");
 
     _db = drizzle(sqlite, { schema });
 
