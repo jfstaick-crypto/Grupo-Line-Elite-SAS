@@ -53,7 +53,21 @@ const DOC_TYPES = ["CC", "TI", "RC", "CE", "AS", "MS", "PS", "PT"];
 const MARITAL_OPTIONS = ["Soltero", "Casado", "Viudo", "Union Libre"];
 const REGIME_OPTIONS = ["Subsidiado", "Contributivo", "Especial", "Extranjero", "Particular", "Otros"];
 const EPS_OPTIONS = ["Saviasalud", "Coosalud", "Nueva EPS", "EPSFamiliar", "Sura"];
-const DEPARTMENTS = [
+const DEPARTAMENTOS_DANE: Record<string, string> = {
+  "Amazonas": "91", "Antioquia": "05", "Arauca": "81",
+  "Atlántico": "08", "Bolívar": "13", "Boyacá": "15",
+  "Caldas": "17", "Caquetá": "18", "Casanare": "85",
+  "Cauca": "19", "Cesar": "20", "Chocó": "27",
+  "Córdoba": "23", "Cundinamarca": "25", "Guainía": "94",
+  "Guaviare": "95", "Huila": "41", "La Guajira": "44",
+  "Magdalena": "47", "Meta": "50", "Nariño": "52",
+  "Norte de Santander": "54", "Putumayo": "86", "Quindío": "63",
+  "Risaralda": "66", "San Andrés y Providencia": "88",
+  "Santander": "68", "Sucre": "70", "Tolima": "73",
+  "Valle del Cauca": "76", "Vaupés": "97", "Vichada": "99",
+  "Bogotá D.C.": "11",
+};
+const HOSPITAL_DEPARTMENTS = [
   "Urgencias", "Hospitalización", "UCI", "Pediatría", "Cirugía",
   "Cardiología", "Neurología", "Traumatología", "Oncología", "Ginecología",
 ];
@@ -86,6 +100,7 @@ export default function AdmisionPage() {
     address: "",
     city: "",
     locality: "",
+    daneCode: "",
     neighborhood: "",
     phone: "",
     insurance: "",
@@ -143,6 +158,7 @@ export default function AdmisionPage() {
           address: data.address || "",
           city: data.city || "",
           locality: data.locality || "",
+          daneCode: data.daneCode || (data.locality ? DEPARTAMENTOS_DANE[data.locality] || "" : ""),
           neighborhood: data.neighborhood || "",
           phone: data.phone || "",
           insurance: data.insurance || "",
@@ -365,8 +381,25 @@ export default function AdmisionPage() {
                     <input type="text" value={patientForm.city} onChange={(e) => setPatientForm({ ...patientForm, city: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Localidad</label>
-                    <input type="text" value={patientForm.locality} onChange={(e) => setPatientForm({ ...patientForm, locality: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Departamento</label>
+                    <select
+                      value={patientForm.locality}
+                      onChange={(e) => {
+                        const dept = e.target.value;
+                        const code = DEPARTAMENTOS_DANE[dept] || "";
+                        setPatientForm({ ...patientForm, locality: dept, daneCode: code });
+                      }}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    >
+                      <option value="">Seleccionar</option>
+                      {Object.keys(DEPARTAMENTOS_DANE).sort().map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Código DANE</label>
+                    <input type="text" value={patientForm.daneCode} readOnly className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Barrio</label>
@@ -403,7 +436,7 @@ export default function AdmisionPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
                 <select value={admissionForm.department} onChange={(e) => setAdmissionForm({ ...admissionForm, department: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800">
-                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  {HOSPITAL_DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div>
