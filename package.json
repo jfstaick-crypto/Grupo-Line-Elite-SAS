@@ -1,18 +1,15 @@
 {
-  "name": "nextjs-template",
-  "version": "0.1.0",
+  "name": "sistema-gestion-hospitalaria",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
-    "db:generate": "drizzle-kit generate",
-    "db:seed": "bun run src/db/seed.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@kilocode/app-builder-db": "github:Kilo-Org/app-builder-db#main",
     "better-sqlite3": "^12.8.0",
     "drizzle-orm": "^0.45.2",
     "iron-session": "^8.0.4",
