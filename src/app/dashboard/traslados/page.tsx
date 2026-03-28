@@ -94,6 +94,7 @@ const AMBULANCE_TYPES = [
 export default function TrasladosPage() {
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [admissions, setAdmissions] = useState<Admission[]>([]);
+  const [currentUser, setCurrentUser] = useState<{ userId: number; fullName: string; role: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [success, setSuccess] = useState("");
@@ -104,15 +105,22 @@ export default function TrasladosPage() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [transfersRes, admissionsRes] = await Promise.all([
+      const [transfersRes, admissionsRes, sessionRes] = await Promise.all([
         fetch("/api/traslados"),
         fetch("/api/admisiones"),
+        fetch("/api/auth/session"),
       ]);
       if (!cancelled) {
         if (transfersRes.ok) setTransfers(await transfersRes.json());
         if (admissionsRes.ok) {
           const all = await admissionsRes.json();
           setAdmissions(all.filter((a: Admission) => a.status === "activa"));
+        }
+        if (sessionRes.ok) {
+          const sessionData = await sessionRes.json();
+          if (sessionData.user) {
+            setCurrentUser(sessionData.user);
+          }
         }
         setLoading(false);
       }
@@ -124,12 +132,20 @@ export default function TrasladosPage() {
   const handleAdmissionSelect = (id: number) => {
     const adm = admissions.find((a) => a.id === id);
     if (adm) {
+      const autoFields: Record<string, string> = {};
+      if (currentUser?.role === "medico") {
+        autoFields.doctorName = currentUser.fullName;
+      }
+      if (currentUser?.role === "auxiliar_enfermeria") {
+        autoFields.auxiliaryName = currentUser.fullName;
+      }
       setForm({
         ...form,
         admissionId: id,
         patientId: adm.patientId,
         originCity: adm.patientCity || form.originCity,
         originInstitution: form.originInstitution || adm.department,
+        ...autoFields,
       });
     }
   };

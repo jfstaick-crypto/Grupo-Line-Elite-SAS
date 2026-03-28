@@ -52,6 +52,7 @@ interface Admission {
 const DOC_TYPES = ["CC", "TI", "RC", "CE", "AS", "MS", "PS", "PT"];
 const MARITAL_OPTIONS = ["Soltero", "Casado", "Viudo", "Union Libre"];
 const REGIME_OPTIONS = ["Subsidiado", "Contributivo", "Especial", "Extranjero", "Particular", "Otros"];
+const EPS_OPTIONS = ["Saviasalud", "Coosalud", "Nueva EPS", "EPSFamiliar", "Sura"];
 const DEPARTMENTS = [
   "Urgencias", "Hospitalización", "UCI", "Pediatría", "Cirugía",
   "Cardiología", "Neurología", "Traumatología", "Oncología", "Ginecología",
@@ -342,8 +343,11 @@ export default function AdmisionPage() {
                     <input type="text" value={patientForm.phone} onChange={(e) => setPatientForm({ ...patientForm, phone: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Aseguradora</label>
-                    <input type="text" value={patientForm.insurance} onChange={(e) => setPatientForm({ ...patientForm, insurance: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Aseguradora (EPS)</label>
+                    <select value={patientForm.insurance} onChange={(e) => setPatientForm({ ...patientForm, insurance: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800">
+                      <option value="">Seleccionar</option>
+                      {EPS_OPTIONS.map((eps) => <option key={eps} value={eps}>{eps}</option>)}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Régimen</label>
