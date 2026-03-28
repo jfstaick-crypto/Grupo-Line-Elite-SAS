@@ -50,6 +50,8 @@ export async function GET(request: Request) {
       treatment: clinicalHistories.treatment,
       notes: clinicalHistories.notes,
       vitalSigns: clinicalHistories.vitalSigns,
+      dischargeConditions: clinicalHistories.dischargeConditions,
+      evolutions: clinicalHistories.evolutions,
       createdAt: clinicalHistories.createdAt,
       updatedAt: clinicalHistories.updatedAt,
       patientFirstName: patients.firstName,
@@ -87,6 +89,8 @@ export async function POST(request: Request) {
       treatment,
       notes,
       vitalSigns,
+      dischargeConditions,
+      evolutions,
     } = body;
 
     if (!patientId || !admissionId || !diagnosis || !symptoms || !treatment) {
@@ -108,6 +112,8 @@ export async function POST(request: Request) {
       treatment,
       notes: notes || null,
       vitalSigns: vitalSigns || null,
+      dischargeConditions: dischargeConditions || null,
+      evolutions: evolutions || null,
     });
 
     return NextResponse.json({ success: true }, { status: 201 });

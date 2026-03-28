@@ -387,10 +387,6 @@ export default function AdmisionPage() {
                     <input type="text" value={patientForm.occupation} onChange={(e) => setPatientForm({ ...patientForm, occupation: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Ciudad</label>
-                    <input type="text" value={patientForm.city} onChange={(e) => setPatientForm({ ...patientForm, city: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
-                  </div>
-                  <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Departamento</label>
                     <select
                       value={patientForm.locality}
@@ -453,13 +449,9 @@ export default function AdmisionPage() {
                     <label className="block text-xs font-medium text-gray-600 mb-1">Código DANE Mpio.</label>
                     <input type="text" value={patientForm.municipalityDaneCode} readOnly className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm" />
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Barrio</label>
-                    <input type="text" value={patientForm.neighborhood} onChange={(e) => setPatientForm({ ...patientForm, neighborhood: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
-                  </div>
                   <div className="col-span-4">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Dirección</label>
-                    <input type="text" value={patientForm.address} onChange={(e) => setPatientForm({ ...patientForm, address: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Dirección de Domicilio</label>
+                    <input type="text" value={patientForm.address} onChange={(e) => setPatientForm({ ...patientForm, address: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" placeholder="Barrio, dirección" />
                   </div>
                 </div>
                 <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">

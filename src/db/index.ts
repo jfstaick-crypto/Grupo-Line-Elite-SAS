@@ -137,6 +137,8 @@ export function getDb() {
         treatment TEXT NOT NULL,
         notes TEXT,
         vital_signs TEXT,
+        discharge_conditions TEXT,
+        evolutions TEXT,
         created_at INTEGER,
         updated_at INTEGER
       );
@@ -201,6 +203,8 @@ export function getDb() {
     safeAlter(sqlite, "ALTER TABLE users ADD COLUMN phone TEXT");
     safeAlter(sqlite, "ALTER TABLE users ADD COLUMN email TEXT");
     safeAlter(sqlite, "ALTER TABLE users ADD COLUMN signature TEXT");
+    safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN discharge_conditions TEXT");
+    safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN evolutions TEXT");
 
     _db = drizzle(sqlite, { schema });
 

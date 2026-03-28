@@ -166,6 +166,8 @@ export const clinicalHistories = sqliteTable("clinical_histories", {
   treatment: text("treatment").notNull(),
   notes: text("notes"),
   vitalSigns: text("vital_signs"),
+  dischargeConditions: text("discharge_conditions"),
+  evolutions: text("evolutions"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
     () => new Date()
   ),
