@@ -37,9 +37,10 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
 
-  const { db } = await import("@/db");
+  const { getDb } = await import("@/db");
   const { admissions, patients, transfers, clinicalHistories, users } =
     await import("@/db/schema");
+  const db = getDb();
 
   if (type === "admissions") {
     const data = await db

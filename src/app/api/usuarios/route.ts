@@ -34,8 +34,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
-  const { db } = await import("@/db");
+  const { getDb } = await import("@/db");
   const { users } = await import("@/db/schema");
+  const db = getDb();
 
   const allUsers = await db
     .select({
@@ -58,8 +59,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { db } = await import("@/db");
+    const { getDb } = await import("@/db");
     const { users } = await import("@/db/schema");
+    const db = getDb();
 
     const body = await request.json();
     const { username, password, fullName, role } = body;
@@ -109,8 +111,9 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const { db } = await import("@/db");
+    const { getDb } = await import("@/db");
     const { users } = await import("@/db/schema");
+    const db = getDb();
 
     const body = await request.json();
     const { id, username, password, fullName, role, active } = body;
@@ -145,8 +148,9 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    const { db } = await import("@/db");
+    const { getDb } = await import("@/db");
     const { users } = await import("@/db/schema");
+    const db = getDb();
 
     const { searchParams } = new URL(request.url);
     const id = parseInt(searchParams.get("id") || "");

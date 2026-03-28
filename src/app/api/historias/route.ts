@@ -34,10 +34,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
-  const { db } = await import("@/db");
+  const { getDb } = await import("@/db");
   const { clinicalHistories, patients, users, admissions } = await import(
     "@/db/schema"
   );
+  const db = getDb();
 
   const allHistories = await db
     .select({
@@ -73,8 +74,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { db } = await import("@/db");
+    const { getDb } = await import("@/db");
     const { clinicalHistories } = await import("@/db/schema");
+    const db = getDb();
 
     const body = await request.json();
     const {
@@ -125,8 +127,9 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const { db } = await import("@/db");
+    const { getDb } = await import("@/db");
     const { clinicalHistories } = await import("@/db/schema");
+    const db = getDb();
 
     const body = await request.json();
     const { id, diagnosis, symptoms, treatment, notes, vitalSigns } = body;

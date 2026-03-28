@@ -1,6 +1,7 @@
-import { db } from "./index";
+import { getDb } from "./index";
 import { users } from "./schema";
 
+const db = getDb();
 const existingUsers = await db.select().from(users).limit(1);
 
 if (existingUsers.length === 0) {

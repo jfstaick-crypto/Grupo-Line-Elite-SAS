@@ -28,8 +28,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const { db } = await import("@/db");
+  const { getDb } = await import("@/db");
   const { patients } = await import("@/db/schema");
+  const db = getDb();
 
   const allPatients = await db.select().from(patients);
   return NextResponse.json(allPatients);
@@ -42,9 +43,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { db } = await import("@/db");
+    const { getDb } = await import("@/db");
     const { patients } = await import("@/db/schema");
     const { eq } = await import("drizzle-orm");
+    const db = getDb();
 
     const body = await request.json();
     const { documentId, firstName, lastName, birthDate, gender, phone, address } =

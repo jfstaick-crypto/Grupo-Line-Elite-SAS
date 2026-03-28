@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { sealData } from "iron-session";
 import { eq } from "drizzle-orm";
+import { sealData } from "iron-session";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +10,9 @@ const COOKIE_NAME = "si";
 
 export async function POST(request: Request) {
   try {
-    const { db } = await import("@/db");
+    const { getDb } = await import("@/db");
     const { users } = await import("@/db/schema");
+    const db = getDb();
 
     const existingUsers = await db.select().from(users).limit(1);
     if (existingUsers.length === 0) {
