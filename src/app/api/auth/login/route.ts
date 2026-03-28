@@ -1,24 +1,14 @@
 import { NextResponse } from "next/server";
-import { createDatabase } from "@kilocode/app-builder-db";
-import * as schema from "@/db/schema";
+import { getDb } from "@/db";
+import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sealData } from "iron-session";
 
 export const dynamic = "force-dynamic";
 
 const COOKIE_NAME = "si";
-const SESSION_PASSWORD = "complex_password_at_least_32_characters_long_for_security";
-
-function getDatabase() {
-  const url = process.env.DB_URL;
-  const token = process.env.DB_TOKEN;
-
-  if (!url || !token) {
-    throw new Error(`DB not configured: URL=${url ? "OK" : "MISSING"}, TOKEN=${token ? "OK" : "MISSING"}`);
-  }
-
-  return createDatabase(schema);
-}
+const SESSION_PASSWORD =
+  "complex_password_at_least_32_characters_long_for_security";
 
 export async function POST(request: Request) {
   try {
@@ -32,48 +22,12 @@ export async function POST(request: Request) {
       );
     }
 
-    let db;
-    try {
-      db = getDatabase();
-    } catch (dbError) {
-      console.error("Database init error:", dbError);
-      return NextResponse.json(
-        { error: "Base de datos no configurada" },
-        { status: 500 }
-      );
-    }
-
-    const existingUsers = await db.select().from(schema.users).limit(1);
-    if (existingUsers.length === 0) {
-      await db.insert(schema.users).values([
-        {
-          username: "admin",
-          password: "admin123",
-          fullName: "Administrador del Sistema",
-          role: "administrador",
-          active: true,
-        },
-        {
-          username: "admision",
-          password: "admision123",
-          fullName: "Usuario de Admisión",
-          role: "admision",
-          active: true,
-        },
-        {
-          username: "medico",
-          password: "medico123",
-          fullName: "Dr. Médico General",
-          role: "medico",
-          active: true,
-        },
-      ]);
-    }
+    const db = getDb();
 
     const foundUsers = await db
       .select()
-      .from(schema.users)
-      .where(eq(schema.users.username, username))
+      .from(users)
+      .where(eq(users.username, username))
       .limit(1);
 
     if (foundUsers.length === 0) {
@@ -118,9 +72,8 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error("Login error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: `Error: ${message}` },
+      { error: "Error interno del servidor" },
       { status: 500 }
     );
   }
