@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sistema de Gestión - Traslados e Historia Clínica",
+  title: "Sistema Hospitalario v2 - Traslados e Historia Clínica",
   description: "Sistema de gestión hospitalaria - Traslados e Historia Clínica Asistencial v3",
 };
 

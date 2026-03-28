@@ -123,7 +123,7 @@ export default function DashboardLayout({
                   Sistema de Gestión
                 </h1>
                 <p className="text-xs text-gray-500">Traslados e Historia</p>
-                <p className="text-xs text-blue-500 font-mono">v4.0 - {new Date().toLocaleDateString("es-ES")}</p>
+                <p className="text-xs text-blue-500 font-mono">v5.0 - {new Date().toLocaleDateString("es-ES")}</p>
               </div>
             )}
           </div>
