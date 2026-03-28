@@ -1,14 +1,43 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { clinicalHistories, patients, users, admissions } from "@/db/schema";
-import { getSession, hasPermission } from "@/lib/auth";
 import { eq, desc } from "drizzle-orm";
+import { unsealData } from "iron-session";
+import { ROLE_PERMISSIONS } from "@/lib/auth";
 
-export async function GET() {
-  const session = await getSession();
+export const dynamic = "force-dynamic";
+
+const SESSION_PASSWORD =
+  "complex_password_at_least_32_characters_long_for_security";
+
+async function getSessionFromRequest(request: Request) {
+  try {
+    const cookieHeader = request.headers.get("cookie") || "";
+    const match = cookieHeader.match(/(?:^|;\s*)si=([^;]*)/);
+    if (!match) return null;
+    return await unsealData<{
+      userId: number;
+      username: string;
+      fullName: string;
+      role: string;
+    }>(decodeURIComponent(match[1]), { password: SESSION_PASSWORD });
+  } catch {
+    return null;
+  }
+}
+
+function hasPermission(role: string, module: string): boolean {
+  return ROLE_PERMISSIONS[role]?.includes(module) ?? false;
+}
+
+export async function GET(request: Request) {
+  const session = await getSessionFromRequest(request);
   if (!session || !hasPermission(session.role, "historia-clinica")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
+
+  const { db } = await import("@/db");
+  const { clinicalHistories, patients, users, admissions } = await import(
+    "@/db/schema"
+  );
 
   const allHistories = await db
     .select({
@@ -38,19 +67,32 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await getSession();
+  const session = await getSessionFromRequest(request);
   if (!session || !hasPermission(session.role, "historia-clinica")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
   try {
+    const { db } = await import("@/db");
+    const { clinicalHistories } = await import("@/db/schema");
+
     const body = await request.json();
-    const { patientId, admissionId, diagnosis, symptoms, treatment, notes, vitalSigns } =
-      body;
+    const {
+      patientId,
+      admissionId,
+      diagnosis,
+      symptoms,
+      treatment,
+      notes,
+      vitalSigns,
+    } = body;
 
     if (!patientId || !admissionId || !diagnosis || !symptoms || !treatment) {
       return NextResponse.json(
-        { error: "Paciente, admisión, diagnóstico, síntomas y tratamiento son requeridos" },
+        {
+          error:
+            "Paciente, admisión, diagnóstico, síntomas y tratamiento son requeridos",
+        },
         { status: 400 }
       );
     }
@@ -77,12 +119,15 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const session = await getSession();
+  const session = await getSessionFromRequest(request);
   if (!session || !hasPermission(session.role, "historia-clinica")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
   try {
+    const { db } = await import("@/db");
+    const { clinicalHistories } = await import("@/db/schema");
+
     const body = await request.json();
     const { id, diagnosis, symptoms, treatment, notes, vitalSigns } = body;
 

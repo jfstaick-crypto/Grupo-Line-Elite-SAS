@@ -1,28 +1,54 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { patients } from "@/db/schema";
-import { getSession } from "@/lib/auth";
-import { eq } from "drizzle-orm";
+import { unsealData } from "iron-session";
 
-export async function GET() {
-  const session = await getSession();
+export const dynamic = "force-dynamic";
+
+const SESSION_PASSWORD =
+  "complex_password_at_least_32_characters_long_for_security";
+
+async function getSessionFromRequest(request: Request) {
+  try {
+    const cookieHeader = request.headers.get("cookie") || "";
+    const match = cookieHeader.match(/(?:^|;\s*)si=([^;]*)/);
+    if (!match) return null;
+    return await unsealData<{
+      userId: number;
+      username: string;
+      fullName: string;
+      role: string;
+    }>(decodeURIComponent(match[1]), { password: SESSION_PASSWORD });
+  } catch {
+    return null;
+  }
+}
+
+export async function GET(request: Request) {
+  const session = await getSessionFromRequest(request);
   if (!session) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
+
+  const { db } = await import("@/db");
+  const { patients } = await import("@/db/schema");
 
   const allPatients = await db.select().from(patients);
   return NextResponse.json(allPatients);
 }
 
 export async function POST(request: Request) {
-  const session = await getSession();
+  const session = await getSessionFromRequest(request);
   if (!session) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
   try {
+    const { db } = await import("@/db");
+    const { patients } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+
     const body = await request.json();
-    const { documentId, firstName, lastName, birthDate, gender, phone, address } = body;
+    const { documentId, firstName, lastName, birthDate, gender, phone, address } =
+      body;
 
     if (!documentId || !firstName || !lastName || !birthDate || !gender) {
       return NextResponse.json(

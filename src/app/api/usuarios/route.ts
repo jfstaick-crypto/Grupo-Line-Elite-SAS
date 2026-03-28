@@ -1,14 +1,41 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { getSession, hasPermission } from "@/lib/auth";
 import { eq } from "drizzle-orm";
+import { unsealData } from "iron-session";
+import { ROLE_PERMISSIONS } from "@/lib/auth";
 
-export async function GET() {
-  const session = await getSession();
+export const dynamic = "force-dynamic";
+
+const SESSION_PASSWORD =
+  "complex_password_at_least_32_characters_long_for_security";
+
+async function getSessionFromRequest(request: Request) {
+  try {
+    const cookieHeader = request.headers.get("cookie") || "";
+    const match = cookieHeader.match(/(?:^|;\s*)si=([^;]*)/);
+    if (!match) return null;
+    return await unsealData<{
+      userId: number;
+      username: string;
+      fullName: string;
+      role: string;
+    }>(decodeURIComponent(match[1]), { password: SESSION_PASSWORD });
+  } catch {
+    return null;
+  }
+}
+
+function hasPermission(role: string, module: string): boolean {
+  return ROLE_PERMISSIONS[role]?.includes(module) ?? false;
+}
+
+export async function GET(request: Request) {
+  const session = await getSessionFromRequest(request);
   if (!session || !hasPermission(session.role, "usuarios")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
+
+  const { db } = await import("@/db");
+  const { users } = await import("@/db/schema");
 
   const allUsers = await db
     .select({
@@ -25,12 +52,15 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await getSession();
+  const session = await getSessionFromRequest(request);
   if (!session || !hasPermission(session.role, "usuarios")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
   try {
+    const { db } = await import("@/db");
+    const { users } = await import("@/db/schema");
+
     const body = await request.json();
     const { username, password, fullName, role } = body;
 
@@ -73,20 +103,20 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const session = await getSession();
+  const session = await getSessionFromRequest(request);
   if (!session || !hasPermission(session.role, "usuarios")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
   try {
+    const { db } = await import("@/db");
+    const { users } = await import("@/db/schema");
+
     const body = await request.json();
     const { id, username, password, fullName, role, active } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID es requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "ID es requerido" }, { status: 400 });
     }
 
     const updateData: Record<string, unknown> = {};
@@ -109,20 +139,20 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await getSession();
+  const session = await getSessionFromRequest(request);
   if (!session || !hasPermission(session.role, "usuarios")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
   try {
+    const { db } = await import("@/db");
+    const { users } = await import("@/db/schema");
+
     const { searchParams } = new URL(request.url);
     const id = parseInt(searchParams.get("id") || "");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID es requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "ID es requerido" }, { status: 400 });
     }
 
     await db.delete(users).where(eq(users.id, id));

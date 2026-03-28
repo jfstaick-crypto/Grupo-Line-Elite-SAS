@@ -1,17 +1,45 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { admissions, patients, transfers, clinicalHistories, users } from "@/db/schema";
-import { getSession, hasPermission } from "@/lib/auth";
 import { eq } from "drizzle-orm";
+import { unsealData } from "iron-session";
+import { ROLE_PERMISSIONS } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
+
+const SESSION_PASSWORD =
+  "complex_password_at_least_32_characters_long_for_security";
+
+async function getSessionFromRequest(request: Request) {
+  try {
+    const cookieHeader = request.headers.get("cookie") || "";
+    const match = cookieHeader.match(/(?:^|;\s*)si=([^;]*)/);
+    if (!match) return null;
+    return await unsealData<{
+      userId: number;
+      username: string;
+      fullName: string;
+      role: string;
+    }>(decodeURIComponent(match[1]), { password: SESSION_PASSWORD });
+  } catch {
+    return null;
+  }
+}
+
+function hasPermission(role: string, module: string): boolean {
+  return ROLE_PERMISSIONS[role]?.includes(module) ?? false;
+}
 
 export async function GET(request: Request) {
-  const session = await getSession();
+  const session = await getSessionFromRequest(request);
   if (!session || !hasPermission(session.role, "exportar")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
+
+  const { db } = await import("@/db");
+  const { admissions, patients, transfers, clinicalHistories, users } =
+    await import("@/db/schema");
 
   if (type === "admissions") {
     const data = await db
