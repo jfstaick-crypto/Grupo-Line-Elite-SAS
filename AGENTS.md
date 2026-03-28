@@ -20,3 +20,4 @@ After completing the user's request, update the relevant memory bank files:
 
 - `.kilocode/rules/memory-bank/context.md` - Current state and recent changes
 - Other memory bank files as needed when architecture, tech stack, or project goals change
+test
