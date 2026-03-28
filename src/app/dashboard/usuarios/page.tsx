@@ -7,6 +7,7 @@ interface User {
   username: string;
   fullName: string;
   role: string;
+  signature: string | null;
   active: boolean;
 }
 
@@ -14,7 +15,11 @@ const ROLE_OPTIONS = [
   { value: "administrador", label: "Administrador" },
   { value: "admision", label: "Admisión" },
   { value: "medico", label: "Médico" },
+  { value: "auxiliar_enfermeria", label: "Auxiliar de Enfermería" },
+  { value: "enfermera_jefe", label: "Enfermera Jefe" },
 ];
+
+const SIGNATURE_ROLES = ["medico", "auxiliar_enfermeria", "enfermera_jefe"];
 
 export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -26,7 +31,9 @@ export default function UsuariosPage() {
     password: "",
     fullName: "",
     role: "admision",
+    signature: "",
   });
+  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -54,7 +61,8 @@ export default function UsuariosPage() {
   }, []);
 
   const resetForm = () => {
-    setFormData({ username: "", password: "", fullName: "", role: "admision" });
+    setFormData({ username: "", password: "", fullName: "", role: "admision", signature: "" });
+    setSignaturePreview(null);
     setEditingUser(null);
     setShowForm(false);
     setError("");
@@ -99,7 +107,9 @@ export default function UsuariosPage() {
       password: "",
       fullName: user.fullName,
       role: user.role,
+      signature: user.signature || "",
     });
+    setSignaturePreview(user.signature || null);
     setShowForm(true);
   };
 
@@ -223,6 +233,42 @@ export default function UsuariosPage() {
                 ))}
               </select>
             </div>
+            {SIGNATURE_ROLES.includes(formData.role) && (
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Firma Digital (imagen)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const base64 = ev.target?.result as string;
+                        setFormData({ ...formData, signature: base64 });
+                        setSignaturePreview(base64);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800"
+                />
+                {signaturePreview && (
+                  <div className="mt-2">
+                    <img src={signaturePreview} alt="Firma" className="h-16 border border-gray-200 rounded" />
+                    <button
+                      type="button"
+                      onClick={() => { setFormData({ ...formData, signature: "" }); setSignaturePreview(null); }}
+                      className="mt-1 text-xs text-red-600 hover:text-red-800 cursor-pointer"
+                    >
+                      Eliminar firma
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="col-span-2 flex gap-3">
               <button
                 type="submit"

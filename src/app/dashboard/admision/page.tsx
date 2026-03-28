@@ -51,6 +51,7 @@ interface Admission {
 
 const DOC_TYPES = ["CC", "TI", "RC", "CE", "AS", "MS", "PS", "PT"];
 const MARITAL_OPTIONS = ["Soltero", "Casado", "Viudo", "Union Libre"];
+const REGIME_OPTIONS = ["Subsidiado", "Contributivo", "Especial", "Extranjero", "Particular", "Otros"];
 const DEPARTMENTS = [
   "Urgencias", "Hospitalización", "UCI", "Pediatría", "Cirugía",
   "Cardiología", "Neurología", "Traumatología", "Oncología", "Ginecología",
@@ -327,6 +328,7 @@ export default function AdmisionPage() {
                     <select value={patientForm.gender} onChange={(e) => setPatientForm({ ...patientForm, gender: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800">
                       <option value="M">Masculino</option>
                       <option value="F">Femenino</option>
+                      <option value="Indefinido">Indefinido</option>
                     </select>
                   </div>
                   <div>
@@ -345,7 +347,10 @@ export default function AdmisionPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Régimen</label>
-                    <input type="text" value={patientForm.regime} onChange={(e) => setPatientForm({ ...patientForm, regime: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                    <select value={patientForm.regime} onChange={(e) => setPatientForm({ ...patientForm, regime: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800">
+                      <option value="">Seleccionar</option>
+                      {REGIME_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Ocupación</label>

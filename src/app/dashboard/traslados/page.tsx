@@ -12,6 +12,12 @@ interface Admission {
   patientLastName: string | null;
   patientSecondLastName: string | null;
   patientDocumentId: string | null;
+  patientGender: string | null;
+  patientPhone: string | null;
+  patientAddress: string | null;
+  patientCity: string | null;
+  patientInsurance: string | null;
+  patientRegime: string | null;
 }
 
 interface Transfer {
@@ -74,9 +80,16 @@ const emptyForm = {
   auxiliaryDocument: "",
   doctorName: "",
   doctorDocument: "",
+  cupsCode: "",
+  cupsDescription: "",
   value: "",
   status: "pendiente",
 };
+
+const AMBULANCE_TYPES = [
+  { type: "TAM", label: "TAM - Transporte de Atención Médica" },
+  { type: "TAB", label: "TAB - Transporte de Atención Básica" },
+];
 
 export default function TrasladosPage() {
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -111,7 +124,13 @@ export default function TrasladosPage() {
   const handleAdmissionSelect = (id: number) => {
     const adm = admissions.find((a) => a.id === id);
     if (adm) {
-      setForm({ ...form, admissionId: id, patientId: adm.patientId });
+      setForm({
+        ...form,
+        admissionId: id,
+        patientId: adm.patientId,
+        originCity: adm.patientCity || form.originCity,
+        originInstitution: form.originInstitution || adm.department,
+      });
     }
   };
 
@@ -245,12 +264,28 @@ export default function TrasladosPage() {
                   <input type="text" value={form.ambulancePlate} onChange={(e) => set("ambulancePlate", e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">TAM</label>
-                  <input type="text" value={form.tam} onChange={(e) => set("tam", e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Tipo Ambulancia</label>
+                  <select
+                    value={form.tam ? "TAM" : form.tab ? "TAB" : ""}
+                    onChange={(e) => {
+                      if (e.target.value === "TAM") set("tam", "X");
+                      else if (e.target.value === "TAB") set("tab", "X");
+                    }}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                  >
+                    <option value="">Seleccionar</option>
+                    {AMBULANCE_TYPES.map((a) => (
+                      <option key={a.type} value={a.type}>{a.label}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">TAB</label>
-                  <input type="text" value={form.tab} onChange={(e) => set("tab", e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Código CUPS</label>
+                  <input type="text" value={form.cupsCode} onChange={(e) => set("cupsCode", e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" placeholder="Ej: 890201" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Descripción CUPS</label>
+                  <input type="text" value={form.cupsDescription} onChange={(e) => set("cupsDescription", e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" placeholder="Ej: Consulta de urgencias" />
                 </div>
               </div>
             </div>

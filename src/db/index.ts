@@ -113,6 +113,8 @@ export function getDb() {
         auxiliary_document TEXT,
         doctor_name TEXT,
         doctor_document TEXT,
+        cups_code TEXT,
+        cups_description TEXT,
         value TEXT,
         status TEXT NOT NULL DEFAULT 'pendiente',
         transfer_date INTEGER NOT NULL
@@ -183,6 +185,9 @@ export function getDb() {
     safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN doctor_document TEXT");
     safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN value TEXT");
     safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN status TEXT NOT NULL DEFAULT 'pendiente'");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN cups_code TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN cups_description TEXT");
+    safeAlter(sqlite, "ALTER TABLE users ADD COLUMN signature TEXT");
 
     _db = drizzle(sqlite, { schema });
 

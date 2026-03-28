@@ -127,6 +127,8 @@ export async function POST(request: Request) {
       auxiliaryDocument: body.auxiliaryDocument || null,
       doctorName: body.doctorName || null,
       doctorDocument: body.doctorDocument || null,
+      cupsCode: body.cupsCode || null,
+      cupsDescription: body.cupsDescription || null,
       value: body.value || null,
       status: body.status || "pendiente",
     });

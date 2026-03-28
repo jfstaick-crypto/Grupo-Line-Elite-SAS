@@ -12,10 +12,18 @@ export const DOCUMENT_TYPES = [
   "CC", "TI", "RC", "CE", "AS", "MS", "PS", "PT",
 ] as const;
 
-export const GENDERS = ["M", "F"] as const;
+export const GENDERS = ["M", "F", "Indefinido"] as const;
 
 export const MARITAL_STATUS = [
   "Soltero", "Casado", "Viudo", "Union Libre",
+] as const;
+
+export const REGIMES = [
+  "Subsidiado", "Contributivo", "Especial", "Extranjero", "Particular", "Otros",
+] as const;
+
+export const SIGNATURE_ROLES = [
+  "medico", "auxiliar_enfermeria", "enfermera_jefe",
 ] as const;
 
 export const users = sqliteTable("users", {
@@ -24,6 +32,7 @@ export const users = sqliteTable("users", {
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
   role: text("role").notNull().$type<Role>(),
+  signature: text("signature"),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
     () => new Date()
@@ -126,6 +135,8 @@ export const transfers = sqliteTable("transfers", {
   doctorName: text("doctor_name"),
   doctorDocument: text("doctor_document"),
   // Valor y estado
+  cupsCode: text("cups_code"),
+  cupsDescription: text("cups_description"),
   value: text("value"),
   status: text("status").notNull().default("pendiente"),
   transferDate: integer("transfer_date", { mode: "timestamp" })
