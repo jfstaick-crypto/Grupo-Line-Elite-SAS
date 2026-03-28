@@ -54,6 +54,8 @@ export const patients = sqliteTable("patients", {
   city: text("city"),
   locality: text("locality"),
   daneCode: text("dane_code"),
+  municipality: text("municipality"),
+  municipalityDaneCode: text("municipality_dane_code"),
   neighborhood: text("neighborhood"),
   phone: text("phone"),
   insurance: text("insurance"),

@@ -53,6 +53,8 @@ export function getDb() {
         city TEXT,
         locality TEXT,
         dane_code TEXT,
+        municipality TEXT,
+        municipality_dane_code TEXT,
         neighborhood TEXT,
         phone TEXT,
         insurance TEXT,
@@ -148,6 +150,8 @@ export function getDb() {
     safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN regime TEXT");
     safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN occupation TEXT");
     safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN dane_code TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN municipality TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN municipality_dane_code TEXT");
     safeAlter(sqlite, "ALTER TABLE admissions ADD COLUMN assigned_doctor_id INTEGER REFERENCES users(id)");
     safeAlter(sqlite, "ALTER TABLE admissions ADD COLUMN companion_name TEXT");
     safeAlter(sqlite, "ALTER TABLE admissions ADD COLUMN companion_relationship TEXT");

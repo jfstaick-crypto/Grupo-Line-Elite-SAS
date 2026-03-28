@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { MUNICIPIOS } from "@/data/municipios";
 
 interface Doctor {
   id: number;
@@ -22,6 +23,9 @@ interface Patient {
   address: string | null;
   city: string | null;
   locality: string | null;
+  daneCode: string | null;
+  municipality: string | null;
+  municipalityDaneCode: string | null;
   neighborhood: string | null;
   insurance: string | null;
   regime: string | null;
@@ -106,7 +110,11 @@ export default function AdmisionPage() {
     insurance: "",
     regime: "",
     occupation: "",
+    municipality: "",
+    municipalityDaneCode: "",
   });
+
+  const [municipalitySearch, setMunicipalitySearch] = useState("");
 
   const [admissionForm, setAdmissionForm] = useState({
     patientId: 0,
@@ -164,6 +172,8 @@ export default function AdmisionPage() {
           insurance: data.insurance || "",
           regime: data.regime || "",
           occupation: data.occupation || "",
+          municipality: data.municipality || "",
+          municipalityDaneCode: data.municipalityDaneCode || "",
         });
         setShowPatientForm(true);
       } else {
@@ -387,7 +397,8 @@ export default function AdmisionPage() {
                       onChange={(e) => {
                         const dept = e.target.value;
                         const code = DEPARTAMENTOS_DANE[dept] || "";
-                        setPatientForm({ ...patientForm, locality: dept, daneCode: code });
+                        setPatientForm({ ...patientForm, locality: dept, daneCode: code, municipality: "", municipalityDaneCode: "" });
+                        setMunicipalitySearch("");
                       }}
                       className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
                     >
@@ -398,8 +409,49 @@ export default function AdmisionPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Código DANE</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Código DANE Dept.</label>
                     <input type="text" value={patientForm.daneCode} readOnly className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm" />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Municipio</label>
+                    <input
+                      type="text"
+                      value={municipalitySearch || patientForm.municipality}
+                      onChange={(e) => setMunicipalitySearch(e.target.value)}
+                      onFocus={() => { if (!municipalitySearch && patientForm.municipality) setMunicipalitySearch(""); }}
+                      placeholder={patientForm.locality ? "Buscar municipio..." : "Seleccione departamento primero"}
+                      disabled={!patientForm.locality}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800 disabled:bg-gray-100"
+                    />
+                    {municipalitySearch && patientForm.locality && (
+                      <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                        {(MUNICIPIOS[patientForm.locality] || [])
+                          .filter((m) => m.name.toLowerCase().includes(municipalitySearch.toLowerCase()))
+                          .slice(0, 20)
+                          .map((m) => (
+                            <div
+                              key={m.daneCode}
+                              onClick={() => {
+                                setPatientForm({ ...patientForm, municipality: m.name, municipalityDaneCode: m.daneCode });
+                                setMunicipalitySearch("");
+                              }}
+                              className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 flex justify-between"
+                            >
+                              <span>{m.name}</span>
+                              <span className="text-gray-400 text-xs">{m.daneCode}</span>
+                            </div>
+                          ))}
+                        {(MUNICIPIOS[patientForm.locality] || [])
+                          .filter((m) => m.name.toLowerCase().includes(municipalitySearch.toLowerCase()))
+                          .length === 0 && (
+                          <div className="px-3 py-2 text-sm text-gray-400">No se encontraron municipios</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Código DANE Mpio.</label>
+                    <input type="text" value={patientForm.municipalityDaneCode} readOnly className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Barrio</label>
