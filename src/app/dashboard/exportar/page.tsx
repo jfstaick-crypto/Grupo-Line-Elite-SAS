@@ -13,6 +13,7 @@ interface CompanyData {
   email: string;
   website: string;
   city: string;
+  slogan: string | null;
   logo: string | null;
 }
 
@@ -43,12 +44,18 @@ export default function ExportarPage() {
       try { doc.addImage(company.logo, "JPEG", 14, y - 5, 20, 20); } catch {}
     }
     const xText = company?.logo ? 38 : 14;
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.text(company?.name || "EMPRESA DE SALUD", xText, y);
+    if (company?.slogan) {
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "italic");
+      doc.text(company.slogan, xText, y + 5);
+      y += 3;
+    }
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text(`NIT: ${company?.nit || "N/A"}  |  Habilitación: ${company?.habilitacionCode || "N/A"}`, xText, y + 5);
+    doc.text(`NIT: ${company?.nit || "N/A"}  |  Cód. Habilitación: ${company?.habilitacionCode || "N/A"}`, xText, y + 5);
     doc.text(`${company?.address || ""} ${company?.city ? "- " + company.city : ""}`, xText, y + 9);
     doc.text(`Tel: ${company?.phone || ""}  |  Email: ${company?.email || ""}  |  Web: ${company?.website || ""}`, xText, y + 13);
     doc.setDrawColor(200, 200, 200);
