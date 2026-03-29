@@ -43,6 +43,7 @@ export async function GET(request: Request) {
       email: "",
       website: "",
       city: "",
+      slogan: "",
       logo: null,
     });
   }
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
       email: body.email || "",
       website: body.website || "",
       city: body.city || "",
+      slogan: body.slogan || "",
       logo: body.logo || null,
       updatedAt: new Date(),
     };

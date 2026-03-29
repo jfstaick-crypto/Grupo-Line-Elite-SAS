@@ -11,6 +11,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   medico: ["historia-clinica", "admision", "traslados"],
   auxiliar_enfermeria: ["historia-clinica", "admision", "traslados"],
   enfermera_jefe: ["historia-clinica", "admision", "traslados", "exportar"],
+  chofer: [],
 };
 
 export function hasPermission(role: string, module: string): boolean {

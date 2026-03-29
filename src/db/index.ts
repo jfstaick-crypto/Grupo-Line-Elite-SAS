@@ -153,6 +153,7 @@ export function getDb() {
         email TEXT NOT NULL DEFAULT '',
         website TEXT NOT NULL DEFAULT '',
         city TEXT NOT NULL DEFAULT '',
+        slogan TEXT,
         logo TEXT,
         updated_at INTEGER
       );
@@ -219,6 +220,7 @@ export function getDb() {
     safeAlter(sqlite, "ALTER TABLE users ADD COLUMN signature TEXT");
     safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN discharge_conditions TEXT");
     safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN evolutions TEXT");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN slogan TEXT");
 
     _db = drizzle(sqlite, { schema });
 

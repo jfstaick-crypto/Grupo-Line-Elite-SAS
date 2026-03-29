@@ -20,9 +20,10 @@ const ROLE_OPTIONS = [
   { value: "medico", label: "Médico" },
   { value: "auxiliar_enfermeria", label: "Auxiliar de Enfermería" },
   { value: "enfermera_jefe", label: "Enfermera Jefe" },
+  { value: "chofer", label: "Chófer" },
 ];
 
-const SIGNATURE_ROLES = ["medico", "auxiliar_enfermeria", "enfermera_jefe"];
+const SIGNATURE_ROLES = ["medico", "auxiliar_enfermeria", "enfermera_jefe", "chofer"];
 
 export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);

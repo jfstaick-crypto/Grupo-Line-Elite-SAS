@@ -12,6 +12,7 @@ export default function EmpresaPage() {
     email: "",
     website: "",
     city: "",
+    slogan: "",
     logo: "",
   });
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,7 @@ export default function EmpresaPage() {
             email: data.email || "",
             website: data.website || "",
             city: data.city || "",
+            slogan: data.slogan || "",
             logo: data.logo || "",
           });
         }
@@ -128,6 +130,10 @@ export default function EmpresaPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Página Web</label>
               <input type="text" value={form.website} onChange={(e) => set("website", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="www.empresa.com" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Eslogan / Lema</label>
+              <input type="text" value={form.slogan} onChange={(e) => set("slogan", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="Ej: Su salud es nuestra prioridad" />
             </div>
           </div>
 

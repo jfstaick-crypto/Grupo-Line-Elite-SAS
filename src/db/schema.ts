@@ -186,6 +186,7 @@ export const companySettings = sqliteTable("company_settings", {
   email: text("email").notNull().default(""),
   website: text("website").notNull().default(""),
   city: text("city").notNull().default(""),
+  slogan: text("slogan"),
   logo: text("logo"),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
     () => new Date()
