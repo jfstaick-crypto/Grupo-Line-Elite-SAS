@@ -38,6 +38,8 @@ interface Admission {
   reason: string;
   department: string;
   bed: string | null;
+  assignedNurseId: number | null;
+  assignedNurseName: string | null;
   status: string;
   admissionDate: string;
   patientFirstName: string | null;
@@ -83,6 +85,7 @@ const RELATIONSHIPS = [
 export default function AdmisionPage() {
   const [admissions, setAdmissions] = useState<Admission[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [nurses, setNurses] = useState<{ id: number; fullName: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPatientForm, setShowPatientForm] = useState(false);
   const [showAdmissionForm, setShowAdmissionForm] = useState(false);
@@ -120,8 +123,8 @@ export default function AdmisionPage() {
     patientId: 0,
     reason: "",
     department: "Urgencias",
-    bed: "",
     assignedDoctorId: 0,
+    assignedNurseId: 0,
     companionName: "",
     companionRelationship: "",
     companionPhone: "",
@@ -130,13 +133,20 @@ export default function AdmisionPage() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [admRes, docRes] = await Promise.all([
+      const [admRes, docRes, usersRes] = await Promise.all([
         fetch("/api/admisiones"),
         fetch("/api/medicos"),
+        fetch("/api/usuarios"),
       ]);
       if (!cancelled) {
         if (admRes.ok) setAdmissions(await admRes.json());
         if (docRes.ok) setDoctors(await docRes.json());
+        if (usersRes.ok) {
+          const allUsers = await usersRes.json();
+          setNurses(allUsers.filter((u: { role: string; active: boolean }) => 
+            (u.role === "auxiliar_enfermeria" || u.role === "enfermera_jefe") && u.active
+          ));
+        }
         setLoading(false);
       }
     };
@@ -236,8 +246,9 @@ export default function AdmisionPage() {
     setFoundPatient(null);
     setSearchDoc("");
     setAdmissionForm({
-      patientId: 0, reason: "", department: "Urgencias", bed: "",
-      assignedDoctorId: 0, companionName: "", companionRelationship: "", companionPhone: "",
+      patientId: 0, reason: "", department: "Urgencias",
+      assignedDoctorId: 0, assignedNurseId: 0,
+      companionName: "", companionRelationship: "", companionPhone: "",
     });
     const admRes = await fetch("/api/admisiones");
     if (admRes.ok) setAdmissions(await admRes.json());
@@ -484,8 +495,15 @@ export default function AdmisionPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cama</label>
-                <input type="text" value={admissionForm.bed} onChange={(e) => setAdmissionForm({ ...admissionForm, bed: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Enfermera en Turno</label>
+                <select
+                  value={admissionForm.assignedNurseId}
+                  onChange={(e) => setAdmissionForm({ ...admissionForm, assignedNurseId: parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
+                >
+                  <option value={0}>Seleccionar enfermera</option>
+                  {nurses.map((n) => <option key={n.id} value={n.id}>{n.fullName}</option>)}
+                </select>
               </div>
               <div className="col-span-3">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Razón de Admisión</label>

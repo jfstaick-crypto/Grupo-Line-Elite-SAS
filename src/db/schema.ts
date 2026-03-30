@@ -79,6 +79,8 @@ export const admissions = sqliteTable("admissions", {
     .references(() => users.id),
   assignedDoctorId: integer("assigned_doctor_id")
     .references(() => users.id),
+  assignedNurseId: integer("assigned_nurse_id")
+    .references(() => users.id),
   reason: text("reason").notNull(),
   department: text("department").notNull(),
   bed: text("bed"),

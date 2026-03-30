@@ -40,6 +40,7 @@ export async function GET(request: Request) {
 
   const { aliasedTable } = await import("drizzle-orm");
   const assignedDoctor = aliasedTable(users, "assigned_doctor");
+  const assignedNurse = aliasedTable(users, "assigned_nurse");
 
   const allAdmissions = await db
     .select({
@@ -48,6 +49,8 @@ export async function GET(request: Request) {
       reason: admissions.reason,
       department: admissions.department,
       bed: admissions.bed,
+      assignedNurseId: admissions.assignedNurseId,
+      assignedNurseName: assignedNurse.fullName,
       status: admissions.status,
       admissionDate: admissions.admissionDate,
       dischargeDate: admissions.dischargeDate,
@@ -74,7 +77,8 @@ export async function GET(request: Request) {
     .from(admissions)
     .leftJoin(patients, eq(admissions.patientId, patients.id))
     .leftJoin(users, eq(admissions.admittedBy, users.id))
-    .leftJoin(assignedDoctor, eq(admissions.assignedDoctorId, assignedDoctor.id));
+    .leftJoin(assignedDoctor, eq(admissions.assignedDoctorId, assignedDoctor.id))
+    .leftJoin(assignedNurse, eq(admissions.assignedNurseId, assignedNurse.id));
 
   return NextResponse.json(allAdmissions);
 }
@@ -95,8 +99,8 @@ export async function POST(request: Request) {
       patientId,
       reason,
       department,
-      bed,
       assignedDoctorId,
+      assignedNurseId,
       companionName,
       companionRelationship,
       companionPhone,
@@ -113,9 +117,9 @@ export async function POST(request: Request) {
       patientId,
       admittedBy: session.userId,
       assignedDoctorId: assignedDoctorId || null,
+      assignedNurseId: assignedNurseId || null,
       reason,
       department,
-      bed: bed || null,
       status: "activa",
       companionName: companionName || null,
       companionRelationship: companionRelationship || null,
