@@ -157,6 +157,38 @@ export function getDb() {
         logo TEXT,
         updated_at INTEGER
       );
+
+      CREATE TABLE IF NOT EXISTS invoices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_number TEXT NOT NULL UNIQUE,
+        patient_id INTEGER NOT NULL REFERENCES patients(id),
+        admission_id INTEGER REFERENCES admissions(id),
+        transfer_id INTEGER REFERENCES transfers(id),
+        created_by INTEGER NOT NULL REFERENCES users(id),
+        cups_code TEXT,
+        cups_description TEXT,
+        diagnosis TEXT,
+        subtotal TEXT NOT NULL DEFAULT '0',
+        tax TEXT NOT NULL DEFAULT '0',
+        total TEXT NOT NULL DEFAULT '0',
+        status TEXT NOT NULL DEFAULT 'pendiente',
+        payment_method TEXT,
+        insurance_company TEXT,
+        authorization_number TEXT,
+        notes TEXT,
+        created_at INTEGER NOT NULL,
+        paid_at INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        action TEXT NOT NULL,
+        module TEXT NOT NULL,
+        record_id INTEGER,
+        details TEXT,
+        created_at INTEGER NOT NULL
+      );
     `);
 
     // Migrate existing tables

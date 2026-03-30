@@ -61,6 +61,12 @@ const NAV_ITEMS = [
     icon: "📊",
   },
   {
+    id: "facturacion",
+    label: "Facturación",
+    href: "/dashboard/facturacion",
+    icon: "💰",
+  },
+  {
     id: "empresa",
     label: "Empresa",
     href: "/dashboard/empresa",

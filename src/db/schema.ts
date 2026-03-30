@@ -192,3 +192,47 @@ export const companySettings = sqliteTable("company_settings", {
     () => new Date()
   ),
 });
+
+export const invoices = sqliteTable("invoices", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  patientId: integer("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  admissionId: integer("admission_id")
+    .references(() => admissions.id),
+  transferId: integer("transfer_id")
+    .references(() => transfers.id),
+  createdBy: integer("created_by")
+    .notNull()
+    .references(() => users.id),
+  cupsCode: text("cups_code"),
+  cupsDescription: text("cups_description"),
+  diagnosis: text("diagnosis"),
+  subtotal: text("subtotal").notNull().default("0"),
+  tax: text("tax").notNull().default("0"),
+  total: text("total").notNull().default("0"),
+  status: text("status").notNull().default("pendiente"),
+  paymentMethod: text("payment_method"),
+  insuranceCompany: text("insurance_company"),
+  authorizationNumber: text("authorization_number"),
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  paidAt: integer("paid_at", { mode: "timestamp" }),
+});
+
+export const auditLog = sqliteTable("audit_log", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  action: text("action").notNull(),
+  module: text("module").notNull(),
+  recordId: integer("record_id"),
+  details: text("details"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
