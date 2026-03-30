@@ -8,10 +8,10 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     "facturacion",
     "empresa",
   ],
-  admision: ["admision", "exportar", "facturacion"],
-  medico: ["historia-clinica", "admision", "traslados"],
-  auxiliar_enfermeria: ["historia-clinica", "admision", "traslados"],
-  enfermera_jefe: ["historia-clinica", "admision", "traslados", "exportar"],
+  admision: ["admision", "traslados"],
+  medico: ["historia-clinica"],
+  auxiliar_enfermeria: ["historia-clinica"],
+  enfermera_jefe: ["historia-clinica"],
   chofer: [],
 };
 
