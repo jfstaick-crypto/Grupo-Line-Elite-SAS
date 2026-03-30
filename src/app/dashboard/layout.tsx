@@ -126,7 +126,7 @@ export default function DashboardLayout({
             {sidebarOpen && (
               <div>
                 <h1 className="font-bold text-gray-800 text-sm">
-                  Grupo Line Elite v6
+                  Grupo Line Elite v7
                 </h1>
                 <p className="text-xs text-gray-500">SAS</p>
               </div>

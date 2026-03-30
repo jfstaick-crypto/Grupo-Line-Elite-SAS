@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Grupo Line Elite SAS v5",
-  description: "Sistema de gestión hospitalaria - Grupo Line Elite SAS v5",
+  title: "Grupo Line Elite SAS v7",
+  description: "Sistema de gestión hospitalaria - Grupo Line Elite SAS v7",
 };
 
 export const dynamic = "force-dynamic";
