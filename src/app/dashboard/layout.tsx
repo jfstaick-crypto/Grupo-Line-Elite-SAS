@@ -120,13 +120,13 @@ export default function DashboardLayout({
       >
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shrink-0">
+            <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold shrink-0">
               GL
             </div>
             {sidebarOpen && (
               <div>
                 <h1 className="font-bold text-gray-800 text-sm">
-                  Grupo Line Elite v7
+                  GRUPO LINE ELITE v8
                 </h1>
                 <p className="text-xs text-gray-500">SAS</p>
               </div>
