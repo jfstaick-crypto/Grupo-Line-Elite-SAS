@@ -48,6 +48,7 @@ export async function GET(request: Request) {
   const allHistories = await db
     .select({
       id: clinicalHistories.id,
+      hcCode: clinicalHistories.hcCode,
       patientId: clinicalHistories.patientId,
       admissionId: clinicalHistories.admissionId,
       doctorId: clinicalHistories.doctorId,
@@ -55,6 +56,7 @@ export async function GET(request: Request) {
       driverId: clinicalHistories.driverId,
       diagnosis: clinicalHistories.diagnosis,
       symptoms: clinicalHistories.symptoms,
+      physicalExam: clinicalHistories.physicalExam,
       treatment: clinicalHistories.treatment,
       notes: clinicalHistories.notes,
       vitalSigns: clinicalHistories.vitalSigns,
@@ -108,6 +110,7 @@ export async function POST(request: Request) {
       driverId,
       diagnosis,
       symptoms,
+      physicalExam,
       treatment,
       notes,
       vitalSigns,
@@ -125,7 +128,11 @@ export async function POST(request: Request) {
       );
     }
 
+    const hcCount = await db.select().from(clinicalHistories);
+    const hcCode = `HC-${String(hcCount.length + 1).padStart(6, "0")}`;
+
     await db.insert(clinicalHistories).values({
+      hcCode,
       patientId,
       admissionId,
       doctorId: doctorId || session.userId,
@@ -133,6 +140,7 @@ export async function POST(request: Request) {
       driverId: driverId || null,
       diagnosis,
       symptoms,
+      physicalExam: physicalExam || null,
       treatment,
       notes: notes || null,
       vitalSigns: vitalSigns || null,

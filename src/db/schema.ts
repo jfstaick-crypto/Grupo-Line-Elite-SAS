@@ -147,6 +147,11 @@ export const transfers = sqliteTable("transfers", {
   cupsDescription: text("cups_description"),
   value: text("value"),
   status: text("status").notNull().default("pendiente"),
+  // Confirmación de entrega
+  receiverName: text("receiver_name"),
+  receiverDocument: text("receiver_document"),
+  receiverSignature: text("receiver_signature"),
+  deliveryObservations: text("delivery_observations"),
   transferDate: integer("transfer_date", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -154,6 +159,7 @@ export const transfers = sqliteTable("transfers", {
 
 export const clinicalHistories = sqliteTable("clinical_histories", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  hcCode: text("hc_code").notNull(),
   patientId: integer("patient_id")
     .notNull()
     .references(() => patients.id),
@@ -168,6 +174,7 @@ export const clinicalHistories = sqliteTable("clinical_histories", {
     .references(() => users.id),
   diagnosis: text("diagnosis").notNull(),
   symptoms: text("symptoms").notNull(),
+  physicalExam: text("physical_exam"),
   treatment: text("treatment").notNull(),
   notes: text("notes"),
   vitalSigns: text("vital_signs"),

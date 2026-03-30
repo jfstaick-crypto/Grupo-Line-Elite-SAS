@@ -129,6 +129,7 @@ export function getDb() {
 
       CREATE TABLE IF NOT EXISTS clinical_histories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        hc_code TEXT NOT NULL,
         patient_id INTEGER NOT NULL REFERENCES patients(id),
         admission_id INTEGER NOT NULL REFERENCES admissions(id),
         doctor_id INTEGER REFERENCES users(id),
@@ -136,6 +137,7 @@ export function getDb() {
         driver_id INTEGER REFERENCES users(id),
         diagnosis TEXT NOT NULL,
         symptoms TEXT NOT NULL,
+        physical_exam TEXT,
         treatment TEXT NOT NULL,
         notes TEXT,
         vital_signs TEXT,
@@ -257,6 +259,12 @@ export function getDb() {
     safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN evolutions TEXT");
     safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN nurse_id INTEGER REFERENCES users(id)");
     safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN driver_id INTEGER REFERENCES users(id)");
+    safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN hc_code TEXT NOT NULL DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN physical_exam TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN receiver_name TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN receiver_document TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN receiver_signature TEXT");
+    safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN delivery_observations TEXT");
     safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN slogan TEXT");
 
     _db = drizzle(sqlite, { schema });

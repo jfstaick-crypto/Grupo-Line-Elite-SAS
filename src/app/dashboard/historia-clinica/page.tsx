@@ -103,6 +103,7 @@ export default function HistoriaClinicaPage() {
     driverId: 0,
     diagnosis: "",
     symptoms: "",
+    physicalExam: "",
     treatment: "",
     notes: "",
     vitalSigns: "",
@@ -190,7 +191,7 @@ export default function HistoriaClinicaPage() {
     setSuccess("Historia clínica registrada exitosamente");
     setForm({
       patientId: 0, admissionId: 0, doctorId: 0, nurseId: 0, driverId: 0,
-      diagnosis: "", symptoms: "", treatment: "",
+      diagnosis: "", symptoms: "", physicalExam: "", treatment: "",
       notes: "", vitalSigns: "", dischargeConditions: JSON.stringify(emptyConditions), evolutions: "[]",
     });
     setConditions({ ...emptyConditions });
@@ -323,6 +324,10 @@ export default function HistoriaClinicaPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Síntomas</label>
               <textarea value={form.symptoms} onChange={(e) => setForm({ ...form, symptoms: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" rows={2} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Examen Físico</label>
+              <textarea value={form.physicalExam || ""} onChange={(e) => setForm({ ...form, physicalExam: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" rows={3} placeholder="Describa hallazgos del examen físico..." />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tratamiento</label>
