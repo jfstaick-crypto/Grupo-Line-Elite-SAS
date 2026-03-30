@@ -17,6 +17,9 @@ interface ClinicalHistory {
   id: number;
   patientId: number;
   admissionId: number;
+  doctorId: number | null;
+  nurseId: number | null;
+  driverId: number | null;
   diagnosis: string;
   symptoms: string;
   treatment: string;
@@ -28,8 +31,22 @@ interface ClinicalHistory {
   patientFirstName: string | null;
   patientLastName: string | null;
   patientDocumentId: string | null;
+  patientBirthDate: string | null;
+  patientGender: string | null;
   doctorName: string | null;
+  doctorSignature: string | null;
+  nurseName: string | null;
+  nurseSignature: string | null;
+  driverName: string | null;
+  driverSignature: string | null;
   department: string | null;
+}
+
+interface StaffMember {
+  id: number;
+  fullName: string;
+  role: string;
+  active: boolean;
 }
 
 interface DischargeConditions {
@@ -68,6 +85,9 @@ const emptyConditions: DischargeConditions = {
 export default function HistoriaClinicaPage() {
   const [histories, setHistories] = useState<ClinicalHistory[]>([]);
   const [admissions, setAdmissions] = useState<Admission[]>([]);
+  const [doctors, setDoctors] = useState<StaffMember[]>([]);
+  const [nurses, setNurses] = useState<StaffMember[]>([]);
+  const [drivers, setDrivers] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState<ClinicalHistory | null>(null);
@@ -78,6 +98,9 @@ export default function HistoriaClinicaPage() {
   const [form, setForm] = useState({
     patientId: 0,
     admissionId: 0,
+    doctorId: 0,
+    nurseId: 0,
+    driverId: 0,
     diagnosis: "",
     symptoms: "",
     treatment: "",
@@ -94,15 +117,22 @@ export default function HistoriaClinicaPage() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [histRes, admRes] = await Promise.all([
+      const [histRes, admRes, usersRes] = await Promise.all([
         fetch("/api/historias"),
         fetch("/api/admisiones"),
+        fetch("/api/usuarios"),
       ]);
       if (!cancelled) {
         if (histRes.ok) setHistories(await histRes.json());
         if (admRes.ok) {
           const all = await admRes.json();
           setAdmissions(all.filter((a: Admission) => a.status === "activa"));
+        }
+        if (usersRes.ok) {
+          const allUsers = await usersRes.json();
+          setDoctors(allUsers.filter((u: StaffMember) => u.role === "medico" && u.active));
+          setNurses(allUsers.filter((u: StaffMember) => (u.role === "auxiliar_enfermeria" || u.role === "enfermera_jefe") && u.active));
+          setDrivers(allUsers.filter((u: StaffMember) => u.role === "chofer" && u.active));
         }
         setLoading(false);
       }
@@ -159,7 +189,8 @@ export default function HistoriaClinicaPage() {
 
     setSuccess("Historia clínica registrada exitosamente");
     setForm({
-      patientId: 0, admissionId: 0, diagnosis: "", symptoms: "", treatment: "",
+      patientId: 0, admissionId: 0, doctorId: 0, nurseId: 0, driverId: 0,
+      diagnosis: "", symptoms: "", treatment: "",
       notes: "", vitalSigns: "", dischargeConditions: JSON.stringify(emptyConditions), evolutions: "[]",
     });
     setConditions({ ...emptyConditions });
@@ -221,6 +252,40 @@ export default function HistoriaClinicaPage() {
                       {a.patientFirstName} {a.patientLastName} - {a.patientDocumentId} ({a.department})
                     </option>
                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Médico</label>
+                <select
+                  value={form.doctorId}
+                  onChange={(e) => setForm({ ...form, doctorId: parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
+                >
+                  <option value={0}>Seleccionar médico</option>
+                  {doctors.map((d) => <option key={d.id} value={d.id}>{d.fullName}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Enfermera</label>
+                <select
+                  value={form.nurseId}
+                  onChange={(e) => setForm({ ...form, nurseId: parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
+                >
+                  <option value={0}>Seleccionar enfermera</option>
+                  {nurses.map((n) => <option key={n.id} value={n.id}>{n.fullName}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Chófer</label>
+                <select
+                  value={form.driverId}
+                  onChange={(e) => setForm({ ...form, driverId: parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
+                >
+                  <option value={0}>Seleccionar chófer</option>
+                  {drivers.map((d) => <option key={d.id} value={d.id}>{d.fullName}</option>)}
                 </select>
               </div>
 

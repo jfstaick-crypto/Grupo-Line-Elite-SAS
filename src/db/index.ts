@@ -131,7 +131,9 @@ export function getDb() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         patient_id INTEGER NOT NULL REFERENCES patients(id),
         admission_id INTEGER NOT NULL REFERENCES admissions(id),
-        doctor_id INTEGER NOT NULL REFERENCES users(id),
+        doctor_id INTEGER REFERENCES users(id),
+        nurse_id INTEGER REFERENCES users(id),
+        driver_id INTEGER REFERENCES users(id),
         diagnosis TEXT NOT NULL,
         symptoms TEXT NOT NULL,
         treatment TEXT NOT NULL,
@@ -252,6 +254,8 @@ export function getDb() {
     safeAlter(sqlite, "ALTER TABLE users ADD COLUMN signature TEXT");
     safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN discharge_conditions TEXT");
     safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN evolutions TEXT");
+    safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN nurse_id INTEGER REFERENCES users(id)");
+    safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN driver_id INTEGER REFERENCES users(id)");
     safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN slogan TEXT");
 
     _db = drizzle(sqlite, { schema });

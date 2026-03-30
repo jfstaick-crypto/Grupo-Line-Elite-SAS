@@ -40,11 +40,19 @@ export async function GET(request: Request) {
   );
   const db = getDb();
 
+  const { aliasedTable } = await import("drizzle-orm");
+  const doctor = aliasedTable(users, "doctor");
+  const nurse = aliasedTable(users, "nurse");
+  const driver = aliasedTable(users, "driver");
+
   const allHistories = await db
     .select({
       id: clinicalHistories.id,
       patientId: clinicalHistories.patientId,
       admissionId: clinicalHistories.admissionId,
+      doctorId: clinicalHistories.doctorId,
+      nurseId: clinicalHistories.nurseId,
+      driverId: clinicalHistories.driverId,
       diagnosis: clinicalHistories.diagnosis,
       symptoms: clinicalHistories.symptoms,
       treatment: clinicalHistories.treatment,
@@ -57,12 +65,23 @@ export async function GET(request: Request) {
       patientFirstName: patients.firstName,
       patientLastName: patients.lastName,
       patientDocumentId: patients.documentId,
-      doctorName: users.fullName,
+      patientBirthDate: patients.birthDate,
+      patientGender: patients.gender,
+      patientInsurance: patients.insurance,
+      patientRegime: patients.regime,
+      doctorName: doctor.fullName,
+      doctorSignature: doctor.signature,
+      nurseName: nurse.fullName,
+      nurseSignature: nurse.signature,
+      driverName: driver.fullName,
+      driverSignature: driver.signature,
       department: admissions.department,
     })
     .from(clinicalHistories)
     .leftJoin(patients, eq(clinicalHistories.patientId, patients.id))
-    .leftJoin(users, eq(clinicalHistories.doctorId, users.id))
+    .leftJoin(doctor, eq(clinicalHistories.doctorId, doctor.id))
+    .leftJoin(nurse, eq(clinicalHistories.nurseId, nurse.id))
+    .leftJoin(driver, eq(clinicalHistories.driverId, driver.id))
     .leftJoin(admissions, eq(clinicalHistories.admissionId, admissions.id))
     .orderBy(desc(clinicalHistories.createdAt));
 
@@ -84,6 +103,9 @@ export async function POST(request: Request) {
     const {
       patientId,
       admissionId,
+      doctorId,
+      nurseId,
+      driverId,
       diagnosis,
       symptoms,
       treatment,
@@ -106,7 +128,9 @@ export async function POST(request: Request) {
     await db.insert(clinicalHistories).values({
       patientId,
       admissionId,
-      doctorId: session.userId,
+      doctorId: doctorId || session.userId,
+      nurseId: nurseId || null,
+      driverId: driverId || null,
       diagnosis,
       symptoms,
       treatment,

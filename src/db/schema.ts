@@ -159,7 +159,10 @@ export const clinicalHistories = sqliteTable("clinical_histories", {
     .notNull()
     .references(() => admissions.id),
   doctorId: integer("doctor_id")
-    .notNull()
+    .references(() => users.id),
+  nurseId: integer("nurse_id")
+    .references(() => users.id),
+  driverId: integer("driver_id")
     .references(() => users.id),
   diagnosis: text("diagnosis").notNull(),
   symptoms: text("symptoms").notNull(),
