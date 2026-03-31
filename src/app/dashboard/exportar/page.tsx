@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-type ExportType = "admissions" | "transfers" | "histories" | "rips_indicators";
+type ExportType = "admissions" | "transfers" | "histories" | "invoices" | "rips_indicators";
 
 interface CompanyData {
   name: string;
@@ -21,6 +21,7 @@ const EXPORT_LABELS: Record<string, string> = {
   admissions: "Admisiones",
   transfers: "Formato de Traslado",
   histories: "Historias Clínicas",
+  invoices: "Facturación",
   rips_indicators: "Indicadores RIPS",
 };
 
@@ -237,6 +238,21 @@ export default function ExportarPage() {
           (d.department || "-") as string,
           d.createdAt ? new Date(d.createdAt as string).toLocaleDateString("es-ES") : "-",
         ]);
+      } else if (type === "invoices") {
+        columns = ["N° Factura", "Paciente", "Documento", "CUPS", "Diagnóstico", "EPS", "Subtotal", "IVA", "Total", "Estado", "Fecha"];
+        rows = data.map((d: Record<string, unknown>) => [
+          (d.invoiceNumber || "-") as string,
+          `${d.patientName || ""} ${d.patientLastName || ""}`,
+          (d.documentId || "") as string,
+          (d.cupsCode || "-") as string,
+          (d.diagnosis || "-") as string,
+          (d.insuranceCompany || "-") as string,
+          `$${parseFloat((d.subtotal as string) || "0").toLocaleString("es-CO")}`,
+          `${(d.tax || "0")}%`,
+          `$${parseFloat((d.total as string) || "0").toLocaleString("es-CO")}`,
+          (d.status || "-") as string,
+          d.createdAt ? new Date(d.createdAt as string).toLocaleDateString("es-ES") : "-",
+        ]);
       } else if (type === "rips_indicators") {
         const indicators = generateRIPSIndicators(data);
         columns = ["Indicador", "Valor"];
@@ -319,6 +335,24 @@ export default function ExportarPage() {
           "Signos Vitales": d.vitalSigns || "-",
           "Notas": d.notes || "-",
         }));
+      } else if (type === "invoices") {
+        formattedData = data.map((d: Record<string, unknown>) => ({
+          "N° Factura": d.invoiceNumber,
+          "Paciente": `${d.patientName} ${d.patientLastName}`,
+          "Documento": d.documentId,
+          "Código CUPS": d.cupsCode || "-",
+          "Descripción CUPS": d.cupsDescription || "-",
+          "Diagnóstico": d.diagnosis || "-",
+          "EPS": d.insuranceCompany || "-",
+          "N° Autorización": d.authorizationNumber || "-",
+          "Subtotal": `$${parseFloat((d.subtotal as string) || "0").toLocaleString("es-CO")}`,
+          "IVA": `${(d.tax || "0")}%`,
+          "Total": `$${parseFloat((d.total as string) || "0").toLocaleString("es-CO")}`,
+          "Método Pago": d.paymentMethod || "-",
+          "Estado": d.status,
+          "Registrado por": d.createdByName || "-",
+          "Fecha": d.createdAt ? new Date(d.createdAt as string).toLocaleDateString("es-ES") : "-",
+        }));
       } else {
         formattedData = data;
       }
@@ -360,6 +394,7 @@ export default function ExportarPage() {
     { type: "admissions", description: "Listado de admisiones con encabezado institucional", icon: "📋" },
     { type: "transfers", description: "Formato de traslado según normatividad vigente", icon: "🚑" },
     { type: "histories", description: "Historias clínicas completas con condiciones de salida", icon: "📝" },
+    { type: "invoices", description: "Facturación con todos los campos según norma RIPS", icon: "💰" },
     { type: "rips_indicators", description: "Indicadores de gestión de traslados", icon: "📊" },
   ];
 

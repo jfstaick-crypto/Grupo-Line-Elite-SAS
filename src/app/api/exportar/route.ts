@@ -105,5 +105,33 @@ export async function GET(request: Request) {
     return NextResponse.json(data);
   }
 
+  if (type === "invoices") {
+    const { invoices } = await import("@/db/schema");
+    const data = await db
+      .select({
+        id: invoices.id,
+        invoiceNumber: invoices.invoiceNumber,
+        patientName: patients.firstName,
+        patientLastName: patients.lastName,
+        documentId: patients.documentId,
+        cupsCode: invoices.cupsCode,
+        cupsDescription: invoices.cupsDescription,
+        diagnosis: invoices.diagnosis,
+        subtotal: invoices.subtotal,
+        tax: invoices.tax,
+        total: invoices.total,
+        status: invoices.status,
+        paymentMethod: invoices.paymentMethod,
+        insuranceCompany: invoices.insuranceCompany,
+        authorizationNumber: invoices.authorizationNumber,
+        createdByName: users.fullName,
+        createdAt: invoices.createdAt,
+      })
+      .from(invoices)
+      .leftJoin(patients, eq(invoices.patientId, patients.id))
+      .leftJoin(users, eq(invoices.createdBy, users.id));
+    return NextResponse.json(data);
+  }
+
   return NextResponse.json({ error: "Tipo no válido" }, { status: 400 });
 }
