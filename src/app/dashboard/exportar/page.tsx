@@ -112,73 +112,145 @@ export default function ExportarPage() {
     const doc = new jsPDF();
     let y = addCompanyHeader(doc);
 
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("HISTORIA CLÍNICA", 105, y, { align: "center" });
-    y += 10;
-
-    doc.setFontSize(10);
     const addField = (label: string, value: string) => {
+      if (y > 270) { doc.addPage(); y = 20; }
       doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
       doc.text(`${label}:`, 14, y);
       doc.setFont("helvetica", "normal");
       const lines = doc.splitTextToSize(value || "-", 130);
       doc.text(lines, 60, y);
-      y += lines.length * 5 + 2;
+      y += lines.length * 4.5 + 1;
     };
 
-    addField("Paciente", `${record.patientFirstName} ${record.patientLastName}`);
-    addField("Documento", record.patientDocumentId as string);
-    addField("Diagnóstico", record.diagnosis as string);
-    addField("Síntomas", record.symptoms as string);
-    addField("Tratamiento", record.treatment as string);
-    addField("Médico", record.doctorName as string);
+    const addSection = (title: string) => {
+      if (y > 260) { doc.addPage(); y = 20; }
+      y += 3;
+      doc.setDrawColor(37, 99, 235);
+      doc.setFillColor(239, 246, 255);
+      doc.rect(14, y - 4, 182, 7, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(37, 99, 235);
+      doc.text(title, 16, y + 1);
+      doc.setTextColor(0, 0, 0);
+      y += 8;
+    };
 
+    // TÍTULO
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("HISTORIA CLÍNICA - FORMATO COMPLETO", 105, y, { align: "center" });
+    y += 8;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Código HC: ${record.hcCode || "N/A"}`, 14, y);
+    doc.text(`Fecha: ${record.createdAt ? new Date(record.createdAt as string).toLocaleDateString("es-ES") : "N/A"}`, 150, y);
+    y += 10;
+
+    // DATOS DEL PACIENTE
+    addSection("DATOS DEL PACIENTE");
+    addField("Tipo Documento", record.patientDocumentType as string);
+    addField("N° Documento", record.patientDocumentId as string);
+    addField("Primer Nombre", record.patientFirstName as string);
+    addField("Segundo Nombre", record.patientMiddleName as string);
+    addField("Primer Apellido", record.patientLastName as string);
+    addField("Segundo Apellido", record.patientSecondLastName as string);
+    addField("Fecha Nacimiento", record.patientBirthDate as string);
+    addField("Sexo", record.patientGender === "M" ? "Masculino" : record.patientGender === "F" ? "Femenino" : "Indefinido");
+    addField("Estado Civil", record.patientMaritalStatus as string);
+    addField("Dirección", record.patientAddress as string);
+    addField("Teléfono", record.patientPhone as string);
+    addField("EPS", record.patientInsurance as string);
+    addField("Régimen", record.patientRegime as string);
+    addField("Ocupación", record.patientOccupation as string);
+
+    // DATOS DE ADMISIÓN
+    addSection("DATOS DE ADMISIÓN");
+    addField("Departamento", record.department as string);
+    addField("Médico Asignado", record.assignedDoctorName as string);
+    addField("Companion", `${record.companionName || "-"} (${record.companionRelationship || "-"})`);
+
+    // DIAGNÓSTICO Y TRATAMIENTO
+    addSection("INFORMACIÓN CLÍNICA");
+    addField("Diagnóstico CIE-10", record.diagnosis as string);
+    addField("Síntomas", record.symptoms as string);
+    addField("Examen Físico", record.physicalExam as string);
+    addField("Tratamiento", record.treatment as string);
+    addField("Notas", record.notes as string);
+
+    // CONDICIONES A LA SALIDA
     if (record.dischargeConditions) {
       try {
         const dc = JSON.parse(record.dischargeConditions as string);
-        y += 3;
-        doc.setFont("helvetica", "bold");
-        doc.text("CONDICIONES A LA SALIDA:", 14, y);
-        y += 6;
-        doc.setFont("helvetica", "normal");
-        addField("Glasgow", dc.glasgow);
-        addField("Consciencia", dc.consciousness);
+        addSection("CONDICIONES A LA SALIDA");
+        addField("Glasgow", dc.glasgow || "-");
+        addField("Estado Consciencia", dc.consciousness || "Alerta");
         addField("FC", dc.fc ? `${dc.fc} lpm` : "-");
         addField("PA", dc.pa ? `${dc.pa} mmHg` : "-");
         addField("PR", dc.pr ? `${dc.pr} rpm` : "-");
         addField("Temperatura", dc.temperatura ? `${dc.temperatura} °C` : "-");
         addField("SatO2", dc.satO2 ? `${dc.satO2}%` : "-");
+        addField("FCF", dc.fcf ? `${dc.fcf} lpm` : "-");
         addField("Alergias", dc.alergias || "Ninguna");
-        addField("Acceso Venoso", dc.accesoVenoso);
-        addField("Oxígeno", dc.oxigeno);
-        addField("Sonda Vesical", dc.sondaVesical);
+        addField("Semanas Gestación", dc.semanasGestacion || "-");
+        addField("Manilla Riesgo", dc.manillaRiesgo || "No");
+        addField("Acceso Venoso", dc.accesoVenoso || "No");
+        addField("Oxígeno", dc.oxigeno || "No");
+        addField("Sonda Vesical", dc.sondaVesical || "No");
+        if (dc.otro === "Sí") addField("Otro", dc.otroCual || "-");
       } catch {}
     }
 
+    // EVOLUCIONES
     if (record.evolutions) {
       try {
         const evos = JSON.parse(record.evolutions as string);
         if (evos.length > 0) {
-          y += 3;
-          doc.setFont("helvetica", "bold");
-          doc.text("EVOLUCIONES:", 14, y);
-          y += 6;
-          doc.setFont("helvetica", "normal");
+          addSection("EVOLUCIONES DURANTE EL TRASLADO");
           evos.forEach((evo: { fecha: string; hora: string; observacion: string }) => {
-            if (y > 270) { doc.addPage(); y = 20; }
-            doc.text(`${evo.fecha} ${evo.hora}: ${evo.observacion}`, 14, y);
-            y += 5;
+            addField(`${evo.fecha} ${evo.hora}`, evo.observacion);
           });
         }
       } catch {}
     }
 
-    if (record.notes) {
-      addField("Notas", record.notes as string);
+    // FIRMAS
+    addSection("FIRMAS");
+    y += 5;
+    
+    // Firma del médico
+    if (record.doctorSignature) {
+      try { doc.addImage(record.doctorSignature as string, "JPEG", 14, y, 30, 15); } catch {}
     }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("_________________________", 14, y + 18);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${record.doctorName || "Médico"}`, 14, y + 22);
+    doc.text("Médico Tratante", 14, y + 25);
 
-    doc.save(`historia_${record.patientDocumentId}_${new Date().toISOString().split("T")[0]}.pdf`);
+    // Firma de la enfermera
+    if (record.nurseSignature) {
+      try { doc.addImage(record.nurseSignature as string, "JPEG", 80, y, 30, 15); } catch {}
+    }
+    doc.setFont("helvetica", "bold");
+    doc.text("_________________________", 80, y + 18);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${record.nurseName || "Enfermera"}`, 80, y + 22);
+    doc.text("Enfermera", 80, y + 25);
+
+    // Firma del chófer
+    if (record.driverSignature) {
+      try { doc.addImage(record.driverSignature as string, "JPEG", 150, y, 30, 15); } catch {}
+    }
+    doc.setFont("helvetica", "bold");
+    doc.text("_________________________", 150, y + 18);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${record.driverName || "Chófer"}`, 150, y + 22);
+    doc.text("Chófer", 150, y + 25);
+
+    doc.save(`HC_${record.patientDocumentId}_${new Date().toISOString().split("T")[0]}.pdf`);
   };
 
   const exportPDF = async (type: string) => {

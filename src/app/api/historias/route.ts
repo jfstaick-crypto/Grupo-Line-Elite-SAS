@@ -65,12 +65,19 @@ export async function GET(request: Request) {
       createdAt: clinicalHistories.createdAt,
       updatedAt: clinicalHistories.updatedAt,
       patientFirstName: patients.firstName,
+      patientMiddleName: patients.middleName,
       patientLastName: patients.lastName,
+      patientSecondLastName: patients.secondLastName,
+      patientDocumentType: patients.documentType,
       patientDocumentId: patients.documentId,
       patientBirthDate: patients.birthDate,
       patientGender: patients.gender,
+      patientMaritalStatus: patients.maritalStatus,
+      patientAddress: patients.address,
+      patientPhone: patients.phone,
       patientInsurance: patients.insurance,
       patientRegime: patients.regime,
+      patientOccupation: patients.occupation,
       doctorName: doctor.fullName,
       doctorSignature: doctor.signature,
       nurseName: nurse.fullName,
@@ -78,6 +85,9 @@ export async function GET(request: Request) {
       driverName: driver.fullName,
       driverSignature: driver.signature,
       department: admissions.department,
+      assignedDoctorName: users.fullName,
+      companionName: admissions.companionName,
+      companionRelationship: admissions.companionRelationship,
     })
     .from(clinicalHistories)
     .leftJoin(patients, eq(clinicalHistories.patientId, patients.id))
@@ -85,6 +95,7 @@ export async function GET(request: Request) {
     .leftJoin(nurse, eq(clinicalHistories.nurseId, nurse.id))
     .leftJoin(driver, eq(clinicalHistories.driverId, driver.id))
     .leftJoin(admissions, eq(clinicalHistories.admissionId, admissions.id))
+    .leftJoin(users, eq(admissions.assignedDoctorId, users.id))
     .orderBy(desc(clinicalHistories.createdAt));
 
   return NextResponse.json(allHistories);
