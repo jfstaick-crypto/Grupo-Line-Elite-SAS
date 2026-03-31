@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { ROLE_PERMISSIONS } from "@/lib/auth";
 
 interface SessionUser {
   userId: number;
@@ -15,18 +16,9 @@ const ROLE_LABELS: Record<string, string> = {
   administrador: "Administrador",
   admision: "Admisión",
   medico: "Médico",
-};
-
-const ROLE_PERMISSIONS: Record<string, string[]> = {
-  administrador: [
-    "usuarios",
-    "admision",
-    "traslados",
-    "historia-clinica",
-    "exportar",
-  ],
-  admision: ["admision", "exportar"],
-  medico: ["historia-clinica", "admision", "traslados"],
+  auxiliar_enfermeria: "Auxiliar de Enfermería",
+  enfermera_jefe: "Enfermera Jefe",
+  chofer: "Chofer",
 };
 
 const NAV_ITEMS = [
