@@ -64,6 +64,8 @@ export const patients = sqliteTable("patients", {
   insurance: text("insurance"),
   regime: text("regime"),
   occupation: text("occupation"),
+  country: text("country"),
+  countryCode: text("country_code"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
     () => new Date()
   ),

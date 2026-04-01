@@ -92,6 +92,8 @@ export async function POST(request: Request) {
       insurance,
       regime,
       occupation,
+      country,
+      countryCode,
     } = body;
 
     if (!documentType || !documentId || !firstName || !lastName || !birthDate || !gender) {
@@ -131,6 +133,8 @@ export async function POST(request: Request) {
           insurance: insurance || null,
           regime: regime || null,
           occupation: occupation || null,
+          country: country || null,
+          countryCode: countryCode || null,
         })
         .where(eq(patients.documentId, documentId));
 
@@ -162,6 +166,8 @@ export async function POST(request: Request) {
       insurance: insurance || null,
       regime: regime || null,
       occupation: occupation || null,
+      country: country || null,
+      countryCode: countryCode || null,
     });
 
     return NextResponse.json({ success: true, message: "Paciente registrado" }, { status: 201 });

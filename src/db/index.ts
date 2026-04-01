@@ -64,6 +64,8 @@ export function getDb() {
         insurance TEXT,
         regime TEXT,
         occupation TEXT,
+        country TEXT,
+        country_code TEXT,
         created_at INTEGER
       );
 
@@ -266,6 +268,8 @@ export function getDb() {
     safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN receiver_signature TEXT");
     safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN delivery_observations TEXT");
     safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN slogan TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN country TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN country_code TEXT");
 
     _db = drizzle(sqlite, { schema });
 

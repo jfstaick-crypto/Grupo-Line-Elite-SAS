@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MUNICIPIOS } from "@/data/municipios";
+import { PAISES } from "@/data/paises";
 
 interface Doctor {
   id: number;
@@ -115,9 +116,12 @@ export default function AdmisionPage() {
     occupation: "",
     municipality: "",
     municipalityDaneCode: "",
+    country: "Colombia",
+    countryCode: "170",
   });
 
   const [municipalitySearch, setMunicipalitySearch] = useState("");
+  const [countrySearch, setCountrySearch] = useState("");
 
   const [admissionForm, setAdmissionForm] = useState({
     patientId: 0,
@@ -184,6 +188,8 @@ export default function AdmisionPage() {
           occupation: data.occupation || "",
           municipality: data.municipality || "",
           municipalityDaneCode: data.municipalityDaneCode || "",
+          country: data.country || "Colombia",
+          countryCode: data.countryCode || "170",
         });
         setShowPatientForm(true);
       } else {
@@ -396,6 +402,43 @@ export default function AdmisionPage() {
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Ocupación</label>
                     <input type="text" value={patientForm.occupation} onChange={(e) => setPatientForm({ ...patientForm, occupation: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">País</label>
+                    <input
+                      type="text"
+                      value={countrySearch || patientForm.country}
+                      onChange={(e) => setCountrySearch(e.target.value)}
+                      placeholder="Buscar país..."
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    />
+                    {countrySearch && (
+                      <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                        {PAISES
+                          .filter((p) => p.name.toLowerCase().includes(countrySearch.toLowerCase()))
+                          .slice(0, 20)
+                          .map((p) => (
+                            <div
+                              key={p.code}
+                              onClick={() => {
+                                setPatientForm({ ...patientForm, country: p.name, countryCode: p.code });
+                                setCountrySearch("");
+                              }}
+                              className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 flex justify-between"
+                            >
+                              <span>{p.name}</span>
+                              <span className="text-gray-400 text-xs">{p.code}</span>
+                            </div>
+                          ))}
+                        {PAISES.filter((p) => p.name.toLowerCase().includes(countrySearch.toLowerCase())).length === 0 && (
+                          <div className="px-3 py-2 text-sm text-gray-400">No se encontraron países</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Código País</label>
+                    <input type="text" value={patientForm.countryCode} readOnly className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Departamento</label>

@@ -45,6 +45,9 @@ export default function FacturacionPage() {
 
   const [form, setForm] = useState({
     patientId: 0,
+    date: "",
+    admissionId: 0,
+    transferId: 0,
     cupsCode: "",
     cupsDescription: "",
     diagnosis: "",
@@ -73,6 +76,36 @@ export default function FacturacionPage() {
     load();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!form.patientId || !form.date) return;
+    let cancelled = false;
+    const fetchDatos = async () => {
+      const res = await fetch(
+        `/api/facturas/buscar-datos?patientId=${form.patientId}&date=${form.date}`
+      );
+      if (!res.ok || cancelled) return;
+      const data = await res.json();
+      const hc = data.histories?.[0];
+      const tr = data.transfers?.[0];
+      if (hc || tr) {
+        setForm((prev) => ({
+          ...prev,
+          admissionId: hc?.admissionId || prev.admissionId,
+          transferId: tr?.id || prev.transferId,
+          cupsCode: tr?.cupsCode || "",
+          cupsDescription: tr?.cupsDescription || "",
+          diagnosis: hc?.diagnosis || tr?.diagnosis || "",
+          subtotal: tr?.value || prev.subtotal,
+          authorizationNumber:
+            tr?.authorizationNumber || prev.authorizationNumber,
+          insuranceCompany: tr?.responsibleEntity || prev.insuranceCompany,
+        }));
+      }
+    };
+    fetchDatos();
+    return () => { cancelled = true; };
+  }, [form.patientId, form.date]);
 
   const calculateTotal = () => {
     const sub = parseFloat(form.subtotal) || 0;
@@ -106,7 +139,8 @@ export default function FacturacionPage() {
     setSuccess(`Factura ${data.invoiceNumber} creada exitosamente`);
     setShowForm(false);
     setForm({
-      patientId: 0, cupsCode: "", cupsDescription: "", diagnosis: "",
+      patientId: 0, date: "", admissionId: 0, transferId: 0,
+      cupsCode: "", cupsDescription: "", diagnosis: "",
       subtotal: "", tax: "0", total: "", paymentMethod: "EPS",
       insuranceCompany: "", authorizationNumber: "", notes: "",
     });
@@ -240,6 +274,16 @@ export default function FacturacionPage() {
                     <option key={p.id} value={p.id}>{p.firstName} {p.lastName} - {p.documentId}</option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800"
+                  required
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Código CUPS</label>
