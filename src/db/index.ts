@@ -159,12 +159,21 @@ export function getDb() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL DEFAULT '',
         nit TEXT NOT NULL DEFAULT '',
+        nit_digit_verifier TEXT DEFAULT '',
         habilitacion_code TEXT NOT NULL DEFAULT '',
         address TEXT NOT NULL DEFAULT '',
         phone TEXT NOT NULL DEFAULT '',
         email TEXT NOT NULL DEFAULT '',
         website TEXT NOT NULL DEFAULT '',
         city TEXT NOT NULL DEFAULT '',
+        dane_code_city TEXT DEFAULT '',
+        dane_code_dept TEXT DEFAULT '',
+        department TEXT DEFAULT '',
+        tax_regime TEXT DEFAULT '',
+        fiscal_responsibility TEXT DEFAULT '',
+        ciiu_code TEXT DEFAULT '',
+        ciiu_description TEXT DEFAULT '',
+        matricula_mercantil TEXT DEFAULT '',
         slogan TEXT,
         logo TEXT,
         updated_at INTEGER
@@ -173,23 +182,54 @@ export function getDb() {
       CREATE TABLE IF NOT EXISTS invoices (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         invoice_number TEXT NOT NULL UNIQUE,
+        invoice_prefix TEXT DEFAULT 'FE',
+        invoice_type TEXT DEFAULT '01',
         patient_id INTEGER NOT NULL REFERENCES patients(id),
         admission_id INTEGER REFERENCES admissions(id),
         transfer_id INTEGER REFERENCES transfers(id),
         created_by INTEGER NOT NULL REFERENCES users(id),
-        cups_code TEXT,
-        cups_description TEXT,
+        diagnosis_code TEXT,
         diagnosis TEXT,
+        contract_number TEXT,
+        payment_modality TEXT,
+        benefit_plan TEXT,
+        currency TEXT DEFAULT 'COP',
         subtotal TEXT NOT NULL DEFAULT '0',
+        discount TEXT DEFAULT '0',
         tax TEXT NOT NULL DEFAULT '0',
         total TEXT NOT NULL DEFAULT '0',
         status TEXT NOT NULL DEFAULT 'pendiente',
         payment_method TEXT,
+        payment_method_code TEXT,
         insurance_company TEXT,
         authorization_number TEXT,
         notes TEXT,
+        due_date INTEGER,
+        cufe TEXT,
+        cuv TEXT,
+        dian_status TEXT,
+        rips_status TEXT,
+        xml_content TEXT,
         created_at INTEGER NOT NULL,
         paid_at INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS invoice_lines (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_id INTEGER NOT NULL REFERENCES invoices(id),
+        line_number INTEGER NOT NULL,
+        cups_code TEXT,
+        cups_description TEXT,
+        cie10_code TEXT,
+        authorization_number TEXT,
+        quantity TEXT NOT NULL DEFAULT '1',
+        unit_measure TEXT DEFAULT 'UND',
+        unit_price TEXT NOT NULL DEFAULT '0',
+        discount_percent TEXT DEFAULT '0',
+        discount_value TEXT DEFAULT '0',
+        tax_rate TEXT DEFAULT '0',
+        tax_value TEXT DEFAULT '0',
+        total_line TEXT NOT NULL DEFAULT '0'
       );
 
       CREATE TABLE IF NOT EXISTS audit_log (
@@ -282,6 +322,33 @@ export function getDb() {
     safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_department_code TEXT");
     safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_city TEXT");
     safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_city_code TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN email TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN user_type TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN affiliate_number TEXT");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN nit_digit_verifier TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dane_code_city TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dane_code_dept TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN department TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN tax_regime TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN fiscal_responsibility TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN ciiu_code TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN ciiu_description TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN matricula_mercantil TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN invoice_prefix TEXT DEFAULT 'FE'");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN invoice_type TEXT DEFAULT '01'");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN diagnosis_code TEXT");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN contract_number TEXT");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN payment_modality TEXT");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN benefit_plan TEXT");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN currency TEXT DEFAULT 'COP'");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN discount TEXT DEFAULT '0'");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN payment_method_code TEXT");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN due_date INTEGER");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN cufe TEXT");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN cuv TEXT");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN dian_status TEXT");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN rips_status TEXT");
+    safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN xml_content TEXT");
 
     _db = drizzle(sqlite, { schema });
 

@@ -49,20 +49,31 @@ export async function GET(request: Request) {
     .select({
       id: invoices.id,
       invoiceNumber: invoices.invoiceNumber,
+      invoicePrefix: invoices.invoicePrefix,
+      invoiceType: invoices.invoiceType,
       patientId: invoices.patientId,
       admissionId: invoices.admissionId,
       transferId: invoices.transferId,
-      cupsCode: invoices.cupsCode,
-      cupsDescription: invoices.cupsDescription,
+      diagnosisCode: invoices.diagnosisCode,
       diagnosis: invoices.diagnosis,
+      contractNumber: invoices.contractNumber,
+      paymentModality: invoices.paymentModality,
+      currency: invoices.currency,
       subtotal: invoices.subtotal,
+      discount: invoices.discount,
       tax: invoices.tax,
       total: invoices.total,
       status: invoices.status,
       paymentMethod: invoices.paymentMethod,
+      paymentMethodCode: invoices.paymentMethodCode,
       insuranceCompany: invoices.insuranceCompany,
       authorizationNumber: invoices.authorizationNumber,
       notes: invoices.notes,
+      dueDate: invoices.dueDate,
+      cufe: invoices.cufe,
+      cuv: invoices.cuv,
+      dianStatus: invoices.dianStatus,
+      ripsStatus: invoices.ripsStatus,
       createdAt: invoices.createdAt,
       paidAt: invoices.paidAt,
       patientFirstName: patients.firstName,
@@ -90,33 +101,49 @@ export async function POST(request: Request) {
     const db = getDb();
 
     const body = await request.json();
-    const { patientId, admissionId, transferId, cupsCode, cupsDescription, diagnosis, subtotal, tax, total, paymentMethod, insuranceCompany, authorizationNumber, notes } = body;
+    const {
+      patientId, admissionId, transferId,
+      diagnosisCode, diagnosis,
+      contractNumber, paymentModality, benefitPlan,
+      currency, subtotal, discount, tax, total,
+      paymentMethod, paymentMethodCode,
+      insuranceCompany, authorizationNumber,
+      notes, invoiceType, dueDate,
+    } = body;
 
     if (!patientId) {
       return NextResponse.json({ error: "Paciente es requerido" }, { status: 400 });
     }
 
     const invoiceCount = await db.select().from(invoices);
-    const invoiceNumber = `FAC-${String(invoiceCount.length + 1).padStart(6, "0")}`;
+    const invoiceNumber = `FE-${String(invoiceCount.length + 1).padStart(6, "0")}`;
 
-    await db.insert(invoices).values({
+    const newInvoice = await db.insert(invoices).values({
       invoiceNumber,
+      invoicePrefix: "FE",
+      invoiceType: invoiceType || "01",
       patientId,
       admissionId: admissionId || null,
       transferId: transferId || null,
       createdBy: session.userId,
-      cupsCode: cupsCode || null,
-      cupsDescription: cupsDescription || null,
+      diagnosisCode: diagnosisCode || null,
       diagnosis: diagnosis || null,
+      contractNumber: contractNumber || null,
+      paymentModality: paymentModality || null,
+      benefitPlan: benefitPlan || null,
+      currency: currency || "COP",
       subtotal: subtotal || "0",
+      discount: discount || "0",
       tax: tax || "0",
       total: total || "0",
       paymentMethod: paymentMethod || null,
+      paymentMethodCode: paymentMethodCode || null,
       insuranceCompany: insuranceCompany || null,
       authorizationNumber: authorizationNumber || null,
       notes: notes || null,
+      dueDate: dueDate ? new Date(dueDate) : null,
       status: "pendiente",
-    });
+    }).returning({ id: invoices.id });
 
     return NextResponse.json({ success: true, invoiceNumber }, { status: 201 });
   } catch (error) {

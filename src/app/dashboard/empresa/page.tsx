@@ -6,12 +6,21 @@ export default function EmpresaPage() {
   const [form, setForm] = useState({
     name: "",
     nit: "",
+    nitDigitVerifier: "",
     habilitacionCode: "",
     address: "",
     phone: "",
     email: "",
     website: "",
     city: "",
+    daneCodeCity: "",
+    daneCodeDept: "",
+    department: "",
+    taxRegime: "",
+    fiscalResponsibility: "",
+    ciiuCode: "",
+    ciiuDescription: "",
+    matriculaMercantil: "",
     slogan: "",
     logo: "",
   });
@@ -28,12 +37,21 @@ export default function EmpresaPage() {
           setForm({
             name: data.name || "",
             nit: data.nit || "",
+            nitDigitVerifier: data.nitDigitVerifier || "",
             habilitacionCode: data.habilitacionCode || "",
             address: data.address || "",
             phone: data.phone || "",
             email: data.email || "",
             website: data.website || "",
             city: data.city || "",
+            daneCodeCity: data.daneCodeCity || "",
+            daneCodeDept: data.daneCodeDept || "",
+            department: data.department || "",
+            taxRegime: data.taxRegime || "",
+            fiscalResponsibility: data.fiscalResponsibility || "",
+            ciiuCode: data.ciiuCode || "",
+            ciiuDescription: data.ciiuDescription || "",
+            matriculaMercantil: data.matriculaMercantil || "",
             slogan: data.slogan || "",
             logo: data.logo || "",
           });
@@ -100,20 +118,70 @@ export default function EmpresaPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la Empresa</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre / Razón Social</label>
               <input type="text" value={form.name} onChange={(e) => set("name", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" required />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">NIT</label>
-              <input type="text" value={form.nit} onChange={(e) => set("nit", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="900.123.456-7" />
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">NIT</label>
+                <input type="text" value={form.nit} onChange={(e) => set("nit", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="900123456" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Dígito Ver.</label>
+                <input type="text" value={form.nitDigitVerifier} onChange={(e) => set("nitDigitVerifier", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="7" maxLength={1} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Régimen</label>
+                <select value={form.taxRegime} onChange={(e) => set("taxRegime", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800">
+                  <option value="">Seleccionar</option>
+                  <option value="Régimen Simple">Régimen Simple</option>
+                  <option value="Régimen Ordinario">Régimen Ordinario</option>
+                  <option value="Gran Contribuyente">Gran Contribuyente</option>
+                  <option value="No Responsable de IVA">No Responsable de IVA</option>
+                </select>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Código de Habilitación</label>
               <input type="text" value={form.habilitacionCode} onChange={(e) => set("habilitacionCode", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
-              <input type="text" value={form.city} onChange={(e) => set("city", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Matrícula Mercantil</label>
+              <input type="text" value={form.matriculaMercantil} onChange={(e) => set("matriculaMercantil", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Responsabilidad Fiscal</label>
+              <input type="text" value={form.fiscalResponsibility} onChange={(e) => set("fiscalResponsibility", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="R-99-PN" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Código CIIU</label>
+                <input type="text" value={form.ciiuCode} onChange={(e) => set("ciiuCode", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="8610" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción CIIU</label>
+                <input type="text" value={form.ciiuDescription} onChange={(e) => set("ciiuDescription", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="Actividades de hospitales" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+                <input type="text" value={form.department} onChange={(e) => set("department", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
+                <input type="text" value={form.city} onChange={(e) => set("city", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Código DANE Dept.</label>
+                <input type="text" value={form.daneCodeDept} onChange={(e) => set("daneCodeDept", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="68" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Código DANE Ciudad</label>
+                <input type="text" value={form.daneCodeCity} onChange={(e) => set("daneCodeCity", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="68001" />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>

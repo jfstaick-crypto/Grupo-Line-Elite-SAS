@@ -26,6 +26,34 @@ export const SIGNATURE_ROLES = [
   "medico", "auxiliar_enfermeria", "enfermera_jefe",
 ] as const;
 
+export const PAYMENT_METHODS_DIAN = [
+  { code: "10", name: "Efectivo" },
+  { code: "20", name: "Cheque" },
+  { code: "22", name: "Giro" },
+  { code: "30", name: "Transferencia" },
+  { code: "31", name: "Tarjeta débito" },
+  { code: "32", name: "Tarjeta crédito" },
+  { code: "42", name: "Consignación" },
+  { code: "46", name: "Compensación" },
+  { code: "ZZZ", name: "Otro" },
+] as const;
+
+export const INVOICE_TYPES = [
+  { code: "01", name: "Factura de venta" },
+  { code: "02", name: "Factura de exportación" },
+  { code: "03", name: "Factura de contingencia" },
+  { code: "04", name: "Nota crédito" },
+  { code: "05", name: "Nota débito" },
+] as const;
+
+export const PAYMENT_MODALITIES = [
+  "Evento", "Cápita", "Global", "Pago directo", "Otro",
+] as const;
+
+export const USER_TYPES = [
+  "Cotizante", "Beneficiario", "Adicional",
+] as const;
+
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
@@ -61,8 +89,11 @@ export const patients = sqliteTable("patients", {
   municipalityDaneCode: text("municipality_dane_code"),
   neighborhood: text("neighborhood"),
   phone: text("phone"),
+  email: text("email"),
   insurance: text("insurance"),
   regime: text("regime"),
+  userType: text("user_type"),
+  affiliateNumber: text("affiliate_number"),
   occupation: text("occupation"),
   country: text("country"),
   countryCode: text("country_code"),
@@ -200,12 +231,21 @@ export const companySettings = sqliteTable("company_settings", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull().default(""),
   nit: text("nit").notNull().default(""),
+  nitDigitVerifier: text("nit_digit_verifier").default(""),
   habilitacionCode: text("habilitacion_code").notNull().default(""),
   address: text("address").notNull().default(""),
   phone: text("phone").notNull().default(""),
   email: text("email").notNull().default(""),
   website: text("website").notNull().default(""),
   city: text("city").notNull().default(""),
+  daneCodeCity: text("dane_code_city").default(""),
+  daneCodeDept: text("dane_code_dept").default(""),
+  department: text("department").default(""),
+  taxRegime: text("tax_regime").default(""),
+  fiscalResponsibility: text("fiscal_responsibility").default(""),
+  ciiuCode: text("ciiu_code").default(""),
+  ciiuDescription: text("ciiu_description").default(""),
+  matriculaMercantil: text("matricula_mercantil").default(""),
   slogan: text("slogan"),
   logo: text("logo"),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
@@ -216,6 +256,8 @@ export const companySettings = sqliteTable("company_settings", {
 export const invoices = sqliteTable("invoices", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   invoiceNumber: text("invoice_number").notNull().unique(),
+  invoicePrefix: text("invoice_prefix").default("FE"),
+  invoiceType: text("invoice_type").default("01"),
   patientId: integer("patient_id")
     .notNull()
     .references(() => patients.id),
@@ -226,21 +268,52 @@ export const invoices = sqliteTable("invoices", {
   createdBy: integer("created_by")
     .notNull()
     .references(() => users.id),
-  cupsCode: text("cups_code"),
-  cupsDescription: text("cups_description"),
+  diagnosisCode: text("diagnosis_code"),
   diagnosis: text("diagnosis"),
+  contractNumber: text("contract_number"),
+  paymentModality: text("payment_modality"),
+  benefitPlan: text("benefit_plan"),
+  currency: text("currency").default("COP"),
   subtotal: text("subtotal").notNull().default("0"),
+  discount: text("discount").default("0"),
   tax: text("tax").notNull().default("0"),
   total: text("total").notNull().default("0"),
   status: text("status").notNull().default("pendiente"),
   paymentMethod: text("payment_method"),
+  paymentMethodCode: text("payment_method_code"),
   insuranceCompany: text("insurance_company"),
   authorizationNumber: text("authorization_number"),
   notes: text("notes"),
+  dueDate: integer("due_date", { mode: "timestamp" }),
+  cufe: text("cufe"),
+  cuv: text("cuv"),
+  dianStatus: text("dian_status"),
+  ripsStatus: text("rips_status"),
+  xmlContent: text("xml_content"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
   paidAt: integer("paid_at", { mode: "timestamp" }),
+});
+
+export const invoiceLines = sqliteTable("invoice_lines", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  invoiceId: integer("invoice_id")
+    .notNull()
+    .references(() => invoices.id),
+  lineNumber: integer("line_number").notNull(),
+  cupsCode: text("cups_code"),
+  cupsDescription: text("cups_description"),
+  cie10Code: text("cie10_code"),
+  authorizationNumber: text("authorization_number"),
+  quantity: text("quantity").notNull().default("1"),
+  unitMeasure: text("unit_measure").default("UND"),
+  unitPrice: text("unit_price").notNull().default("0"),
+  discountPercent: text("discount_percent").default("0"),
+  discountValue: text("discount_value").default("0"),
+  taxRate: text("tax_rate").default("0"),
+  taxValue: text("tax_value").default("0"),
+  totalLine: text("total_line").notNull().default("0"),
 });
 
 export const auditLog = sqliteTable("audit_log", {
