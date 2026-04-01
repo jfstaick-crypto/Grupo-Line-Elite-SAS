@@ -30,11 +30,21 @@ export async function GET(request: Request) {
   }
 
   const { getDb } = await import("@/db");
-  const { invoices, patients, users } = await import("@/db/schema");
+  const { invoices, patients, users, invoiceLines } = await import("@/db/schema");
   const db = getDb();
 
   const { searchParams } = new URL(request.url);
   const patientId = searchParams.get("patientId");
+  const invoiceId = searchParams.get("invoiceId");
+
+  if (invoiceId) {
+    const lines = await db
+      .select()
+      .from(invoiceLines)
+      .where(eq(invoiceLines.invoiceId, parseInt(invoiceId)))
+      .orderBy(invoiceLines.lineNumber);
+    return NextResponse.json(lines);
+  }
 
   if (patientId) {
     const patientInvoices = await db
@@ -97,7 +107,7 @@ export async function POST(request: Request) {
 
   try {
     const { getDb } = await import("@/db");
-    const { invoices } = await import("@/db/schema");
+    const { invoices, invoiceLines } = await import("@/db/schema");
     const db = getDb();
 
     const body = await request.json();
@@ -108,7 +118,7 @@ export async function POST(request: Request) {
       currency, subtotal, discount, tax, total,
       paymentMethod, paymentMethodCode,
       insuranceCompany, authorizationNumber,
-      notes, invoiceType, dueDate,
+      notes, invoiceType, dueDate, lines,
     } = body;
 
     if (!patientId) {
@@ -145,7 +155,30 @@ export async function POST(request: Request) {
       status: "pendiente",
     }).returning({ id: invoices.id });
 
-    return NextResponse.json({ success: true, invoiceNumber }, { status: 201 });
+    const newInvoiceId = newInvoice[0]?.id;
+
+    if (newInvoiceId && lines && Array.isArray(lines) && lines.length > 0) {
+      await db.insert(invoiceLines).values(
+        lines.map((l: Record<string, unknown>, idx: number) => ({
+          invoiceId: newInvoiceId,
+          lineNumber: idx + 1,
+          cupsCode: (l.cupsCode as string) || null,
+          cupsDescription: (l.cupsDescription as string) || null,
+          cie10Code: (l.cie10Code as string) || null,
+          authorizationNumber: (l.authorizationNumber as string) || null,
+          quantity: (l.quantity as string) || "1",
+          unitMeasure: (l.unitMeasure as string) || "UND",
+          unitPrice: (l.unitPrice as string) || "0",
+          discountPercent: (l.discountPercent as string) || "0",
+          discountValue: (l.discountValue as string) || "0",
+          taxRate: (l.taxRate as string) || "0",
+          taxValue: (l.taxValue as string) || "0",
+          totalLine: (l.totalLine as string) || "0",
+        }))
+      );
+    }
+
+    return NextResponse.json({ success: true, invoiceNumber, invoiceId: newInvoiceId }, { status: 201 });
   } catch (error) {
     console.error("Create invoice error:", error);
     return NextResponse.json({ error: "Error al crear factura" }, { status: 500 });

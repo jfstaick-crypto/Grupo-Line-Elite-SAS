@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-type ExportType = "admissions" | "transfers" | "histories" | "invoices" | "rips_indicators";
+type ExportType = "admissions" | "transfers" | "histories" | "invoices" | "billing_indicators" | "rips_indicators";
 
 interface CompanyData {
   name: string;
@@ -22,6 +22,7 @@ const EXPORT_LABELS: Record<string, string> = {
   transfers: "Formato de Traslado",
   histories: "Historias Clínicas",
   invoices: "Facturación",
+  billing_indicators: "Indicadores Facturación",
   rips_indicators: "Indicadores RIPS",
 };
 
@@ -311,20 +312,29 @@ export default function ExportarPage() {
           d.createdAt ? new Date(d.createdAt as string).toLocaleDateString("es-ES") : "-",
         ]);
       } else if (type === "invoices") {
-        columns = ["N° Factura", "Paciente", "Documento", "CUPS", "Diagnóstico", "EPS", "Subtotal", "IVA", "Total", "Estado", "Fecha"];
+        columns = ["N° Factura", "Paciente", "Doc", "CIE-10", "Diagnóstico", "EPS", "Contrato", "Modalidad", "Moneda", "Subtotal", "Desc.", "IVA", "Total", "Método Pago", "Estado", "Fecha"];
         rows = data.map((d: Record<string, unknown>) => [
           (d.invoiceNumber || "-") as string,
           `${d.patientName || ""} ${d.patientLastName || ""}`,
           (d.documentId || "") as string,
-          (d.cupsCode || "-") as string,
-          (d.diagnosis || "-") as string,
+          (d.diagnosisCode || "-") as string,
+          ((d.diagnosis as string) || "-").substring(0, 30),
           (d.insuranceCompany || "-") as string,
+          (d.contractNumber || "-") as string,
+          (d.paymentModality || "-") as string,
+          (d.currency || "COP") as string,
           `$${parseFloat((d.subtotal as string) || "0").toLocaleString("es-CO")}`,
-          `${(d.tax || "0")}%`,
+          `$${parseFloat((d.discount as string) || "0").toLocaleString("es-CO")}`,
+          `$${parseFloat((d.tax as string) || "0").toLocaleString("es-CO")}`,
           `$${parseFloat((d.total as string) || "0").toLocaleString("es-CO")}`,
+          (d.paymentMethod || "-") as string,
           (d.status || "-") as string,
           d.createdAt ? new Date(d.createdAt as string).toLocaleDateString("es-ES") : "-",
         ]);
+      } else if (type === "billing_indicators") {
+        const indicators = generateBillingIndicators(data);
+        columns = ["Indicador", "Valor"];
+        rows = indicators.map((i) => [i.name, String(i.value)]);
       } else if (type === "rips_indicators") {
         const indicators = generateRIPSIndicators(data);
         columns = ["Indicador", "Valor"];
@@ -410,22 +420,30 @@ export default function ExportarPage() {
       } else if (type === "invoices") {
         formattedData = data.map((d: Record<string, unknown>) => ({
           "N° Factura": d.invoiceNumber,
+          "Prefijo": d.invoicePrefix || "FE",
+          "Tipo": d.invoiceType === "01" ? "Venta" : d.invoiceType || "-",
           "Paciente": `${d.patientName} ${d.patientLastName}`,
           "Documento": d.documentId,
-          "Código CUPS": d.cupsCode || "-",
-          "Descripción CUPS": d.cupsDescription || "-",
+          "CIE-10": d.diagnosisCode || "-",
           "Diagnóstico": d.diagnosis || "-",
           "EPS": d.insuranceCompany || "-",
+          "N° Contrato": d.contractNumber || "-",
+          "Modalidad Pago": d.paymentModality || "-",
           "N° Autorización": d.authorizationNumber || "-",
-          "Subtotal": `$${parseFloat((d.subtotal as string) || "0").toLocaleString("es-CO")}`,
-          "IVA": `${(d.tax || "0")}%`,
-          "Total": `$${parseFloat((d.total as string) || "0").toLocaleString("es-CO")}`,
+          "Moneda": d.currency || "COP",
+          "Subtotal": parseFloat((d.subtotal as string) || "0"),
+          "Descuento": parseFloat((d.discount as string) || "0"),
+          "IVA": parseFloat((d.tax as string) || "0"),
+          "Total": parseFloat((d.total as string) || "0"),
           "Método Pago": d.paymentMethod || "-",
           "Estado": d.status,
+          "CUFE": d.cufe || "-",
+          "CUV": d.cuv || "-",
+          "Estado DIAN": d.dianStatus || "-",
           "Registrado por": d.createdByName || "-",
           "Fecha": d.createdAt ? new Date(d.createdAt as string).toLocaleDateString("es-ES") : "-",
         }));
-      } else {
+      } else if (type === "billing_indicators") {
         formattedData = data;
       }
 
@@ -462,12 +480,64 @@ export default function ExportarPage() {
     ];
   };
 
+  const generateBillingIndicators = (data: Record<string, unknown>[]): { name: string; value: string | number }[] => {
+    const total = data.length;
+    const pagadas = data.filter((d) => d.status === "pagada").length;
+    const pendientes = data.filter((d) => d.status === "pendiente").length;
+    const anuladas = data.filter((d) => d.status === "anulada").length;
+    const totalFacturado = data.reduce((acc, d) => acc + parseFloat((d.total as string) || "0"), 0);
+    const totalPagado = data.filter((d) => d.status === "pagada").reduce((acc, d) => acc + parseFloat((d.total as string) || "0"), 0);
+    const totalPendiente = data.filter((d) => d.status === "pendiente").reduce((acc, d) => acc + parseFloat((d.total as string) || "0"), 0);
+
+    const byEPS: Record<string, { count: number; total: number }> = {};
+    data.forEach((d) => {
+      const eps = (d.insuranceCompany as string) || "Particular";
+      if (!byEPS[eps]) byEPS[eps] = { count: 0, total: 0 };
+      byEPS[eps].count++;
+      byEPS[eps].total += parseFloat((d.total as string) || "0");
+    });
+
+    const byPaymentMethod: Record<string, number> = {};
+    data.forEach((d) => {
+      const pm = (d.paymentMethod as string) || "Sin especificar";
+      byPaymentMethod[pm] = (byPaymentMethod[pm] || 0) + 1;
+    });
+
+    const byModality: Record<string, number> = {};
+    data.forEach((d) => {
+      const mod = (d.paymentModality as string) || "Sin especificar";
+      byModality[mod] = (byModality[mod] || 0) + 1;
+    });
+
+    const promedioFactura = total > 0 ? totalFacturado / total : 0;
+    const tasaPago = total > 0 ? (pagadas / total) * 100 : 0;
+
+    return [
+      { name: "Total Facturas", value: total },
+      { name: "Facturas Pagadas", value: pagadas },
+      { name: "Facturas Pendientes", value: pendientes },
+      { name: "Facturas Anuladas", value: anuladas },
+      { name: "% Pagadas", value: `${tasaPago.toFixed(1)}%` },
+      { name: "Total Facturado", value: `$${totalFacturado.toLocaleString("es-CO")}` },
+      { name: "Total Pagado", value: `$${totalPagado.toLocaleString("es-CO")}` },
+      { name: "Total Pendiente Cobro", value: `$${totalPendiente.toLocaleString("es-CO")}` },
+      { name: "Promedio por Factura", value: `$${promedioFactura.toLocaleString("es-CO", { maximumFractionDigits: 0 })}` },
+      { name: "--- Por EPS ---", value: "" },
+      ...Object.entries(byEPS).map(([k, v]) => ({ name: `${k}: ${v.count} facturas`, value: `$${v.total.toLocaleString("es-CO")}` })),
+      { name: "--- Por Método de Pago ---", value: "" },
+      ...Object.entries(byPaymentMethod).map(([k, v]) => ({ name: k, value: v })),
+      { name: "--- Por Modalidad ---", value: "" },
+      ...Object.entries(byModality).map(([k, v]) => ({ name: k, value: v })),
+    ];
+  };
+
   const exportOptions = [
     { type: "admissions", description: "Listado de admisiones con encabezado institucional", icon: "📋" },
     { type: "transfers", description: "Formato de traslado según normatividad vigente", icon: "🚑" },
     { type: "histories", description: "Historias clínicas completas con condiciones de salida", icon: "📝" },
-    { type: "invoices", description: "Facturación con todos los campos según norma RIPS", icon: "💰" },
-    { type: "rips_indicators", description: "Indicadores de gestión de traslados", icon: "📊" },
+    { type: "invoices", description: "Facturación con todos los campos DIAN y RIPS", icon: "💰" },
+    { type: "billing_indicators", description: "Indicadores: facturación, cobro, EPS, métodos de pago", icon: "📊" },
+    { type: "rips_indicators", description: "Indicadores de gestión de traslados", icon: "📈" },
   ];
 
   return (

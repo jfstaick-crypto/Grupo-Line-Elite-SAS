@@ -5,18 +5,30 @@ import { useState, useEffect } from "react";
 interface Invoice {
   id: number;
   invoiceNumber: string;
+  invoicePrefix: string | null;
+  invoiceType: string | null;
   patientId: number;
-  cupsCode: string | null;
-  cupsDescription: string | null;
+  diagnosisCode: string | null;
   diagnosis: string | null;
+  contractNumber: string | null;
+  paymentModality: string | null;
+  benefitPlan: string | null;
+  currency: string | null;
   subtotal: string;
+  discount: string | null;
   tax: string;
   total: string;
   status: string;
   paymentMethod: string | null;
+  paymentMethodCode: string | null;
   insuranceCompany: string | null;
   authorizationNumber: string | null;
   notes: string | null;
+  dueDate: string | null;
+  cufe: string | null;
+  cuv: string | null;
+  dianStatus: string | null;
+  ripsStatus: string | null;
   createdAt: string;
   paidAt: string | null;
   patientFirstName: string | null;
@@ -165,68 +177,174 @@ export default function FacturacionPage() {
     const companyRes = await fetch("/api/empresa");
     const company = companyRes.ok ? await companyRes.json() : null;
 
+    const linesRes = await fetch(`/api/facturas?invoiceId=${inv.id}`);
+    const invLines = linesRes.ok ? await linesRes.json() : [];
+
     let y = 15;
     if (company?.logo) {
       try { doc.addImage(company.logo, "JPEG", 14, y - 5, 20, 20); } catch {}
     }
     const x = company?.logo ? 38 : 14;
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text(company?.name || "EMPRESA DE SALUD", x, y);
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
-    doc.text(`NIT: ${company?.nit || "N/A"} | Habilitación: ${company?.habilitacionCode || "N/A"}`, x, y + 5);
-    doc.text(`${company?.address || ""} - ${company?.city || ""}`, x, y + 9);
-    doc.text(`Tel: ${company?.phone || ""} | Email: ${company?.email || ""}`, x, y + 13);
+    const nitStr = company?.nitDigitVerifier
+      ? `${company.nit}-${company.nitDigitVerifier}`
+      : company?.nit || "N/A";
+    doc.text(`NIT: ${nitStr}  |  Habilitación: ${company?.habilitacionCode || "N/A"}`, x, y + 5);
+    if (company?.taxRegime) doc.text(`Régimen: ${company.taxRegime}  |  CIIU: ${company?.ciiuCode || "-"}`, x, y + 8);
+    doc.text(`${company?.address || ""} - ${company?.department || ""} - ${company?.city || ""}`, x, y + 11);
+    doc.text(`Tel: ${company?.phone || ""}  |  Email: ${company?.email || ""}`, x, y + 14);
 
-    y += 22;
-    doc.setFontSize(16);
+    y += 20;
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(0.5);
+    doc.line(14, y, 196, y);
+    y += 5;
+
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text("FACTURA DE SERVICIOS", 105, y, { align: "center" });
-    y += 8;
-    doc.setFontSize(12);
-    doc.text(`N° ${inv.invoiceNumber}`, 105, y, { align: "center" });
-    y += 10;
-
+    doc.text("FACTURA ELECTRÓNICA DE VENTA", 105, y, { align: "center" });
+    y += 7;
     doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
+    doc.text(`${inv.invoiceNumber}`, 105, y, { align: "center" });
+    if (inv.cufe) {
+      y += 5;
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      doc.text(`CUFE: ${inv.cufe}`, 105, y, { align: "center" });
+    }
+    y += 8;
+
+    doc.setFontSize(9);
     const addField = (label: string, value: string) => {
+      if (y > 270) { doc.addPage(); y = 15; }
       doc.setFont("helvetica", "bold");
       doc.text(`${label}:`, 14, y);
       doc.setFont("helvetica", "normal");
       doc.text(value || "-", 70, y);
-      y += 6;
+      y += 5;
     };
 
-    addField("Fecha", new Date(inv.createdAt).toLocaleDateString("es-ES"));
-    addField("Paciente", `${inv.patientFirstName} ${inv.patientLastName}`);
-    addField("Documento", inv.patientDocumentId || "-");
-    if (inv.diagnosis) addField("Diagnóstico", inv.diagnosis);
-    if (inv.cupsCode) addField("CUPS", `${inv.cupsCode} - ${inv.cupsDescription || ""}`);
-    if (inv.authorizationNumber) addField("N° Autorización", inv.authorizationNumber);
-    if (inv.insuranceCompany) addField("EPS", inv.insuranceCompany);
+    addField("Fecha Emisión", new Date(inv.createdAt).toLocaleDateString("es-ES"));
+    addField("Tipo Factura", inv.invoiceType === "01" ? "Factura de Venta" : inv.invoiceType || "-");
+    addField("Moneda", inv.currency || "COP");
+    if (inv.dueDate) addField("Fecha Vencimiento", new Date(inv.dueDate).toLocaleDateString("es-ES"));
 
-    y += 5;
+    y += 2;
     doc.setDrawColor(200, 200, 200);
     doc.line(14, y, 196, y);
-    y += 8;
+    y += 5;
 
+    doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
-    doc.text("Subtotal:", 130, y);
-    doc.text(`$${parseFloat(inv.subtotal).toLocaleString("es-CO")}`, 196, y, { align: "right" });
+    doc.setTextColor(37, 99, 235);
+    doc.text("DATOS DEL PACIENTE", 14, y);
+    doc.setTextColor(0, 0, 0);
+    y += 5;
+    doc.setFontSize(8);
+    addField("Paciente", `${inv.patientFirstName} ${inv.patientLastName}`);
+    addField("Documento", inv.patientDocumentId || "-");
+    if (inv.insuranceCompany) addField("EPS / Entidad", inv.insuranceCompany);
+    if (inv.authorizationNumber) addField("N° Autorización", inv.authorizationNumber);
+    if (inv.contractNumber) addField("N° Contrato", inv.contractNumber);
+    if (inv.paymentModality) addField("Modalidad Pago", inv.paymentModality);
+    if (inv.benefitPlan) addField("Plan de Beneficios", inv.benefitPlan);
+
+    y += 2;
+    if (inv.diagnosisCode || inv.diagnosis) {
+      doc.line(14, y, 196, y);
+      y += 5;
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(37, 99, 235);
+      doc.text("DIAGNÓSTICO", 14, y);
+      doc.setTextColor(0, 0, 0);
+      y += 5;
+      if (inv.diagnosisCode) addField("CIE-10", inv.diagnosisCode);
+      addField("Descripción", inv.diagnosis || "-");
+    }
+
+    y += 3;
+    doc.line(14, y, 196, y);
+    y += 5;
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(37, 99, 235);
+    doc.text("DETALLE DE SERVICIOS", 14, y);
+    doc.setTextColor(0, 0, 0);
+    y += 5;
+
+    if (invLines.length > 0) {
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.text("#", 14, y);
+      doc.text("CUPS", 22, y);
+      doc.text("Descripción", 50, y);
+      doc.text("CIE-10", 110, y);
+      doc.text("Cant", 135, y);
+      doc.text("Vr. Unit", 148, y);
+      doc.text("IVA", 168, y);
+      doc.text("Total", 182, y);
+      y += 4;
+      doc.setDrawColor(150, 150, 150);
+      doc.line(14, y, 196, y);
+      y += 3;
+
+      doc.setFont("helvetica", "normal");
+      invLines.forEach((line: Record<string, unknown>) => {
+        if (y > 270) { doc.addPage(); y = 15; }
+        doc.text(String(line.lineNumber || "-"), 14, y);
+        doc.text((line.cupsCode as string) || "-", 22, y);
+        const desc = doc.splitTextToSize((line.cupsDescription as string) || "-", 58);
+        doc.text(desc[0] || "-", 50, y);
+        doc.text((line.cie10Code as string) || "-", 110, y);
+        doc.text(String(line.quantity || "1"), 135, y);
+        doc.text(`$${parseFloat((line.unitPrice as string) || "0").toLocaleString("es-CO")}`, 148, y);
+        doc.text(`${line.taxRate || "0"}%`, 168, y);
+        doc.text(`$${parseFloat((line.totalLine as string) || "0").toLocaleString("es-CO")}`, 182, y);
+        y += 5;
+      });
+    } else {
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "italic");
+      doc.text("Sin detalle de líneas registrado", 14, y);
+      y += 5;
+    }
+
+    y += 3;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(120, y, 196, y);
     y += 6;
-    doc.text("IVA:", 130, y);
-    doc.text(`${inv.tax}%`, 196, y, { align: "right" });
-    y += 6;
-    doc.setFontSize(12);
-    doc.text("TOTAL:", 130, y);
-    doc.text(`$${parseFloat(inv.total).toLocaleString("es-CO")}`, 196, y, { align: "right" });
-    y += 10;
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text(`Estado: ${inv.status === "pagada" ? "PAGADA" : "PENDIENTE"}`, 14, y);
-    if (inv.paymentMethod) doc.text(`Método de pago: ${inv.paymentMethod}`, 14, y + 5);
+    const addTotal = (label: string, value: string) => {
+      doc.text(`${label}:`, 140, y);
+      doc.setFont("helvetica", "bold");
+      doc.text(value, 196, y, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      y += 5;
+    };
+
+    addTotal("Subtotal", `$${parseFloat(inv.subtotal).toLocaleString("es-CO")}`);
+    if (inv.discount && parseFloat(inv.discount) > 0) {
+      addTotal("Descuento", `$${parseFloat(inv.discount).toLocaleString("es-CO")}`);
+    }
+    addTotal("IVA", `$${parseFloat(inv.tax).toLocaleString("es-CO")}`);
+    y += 2;
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("TOTAL A PAGAR:", 120, y);
+    doc.text(`$${parseFloat(inv.total).toLocaleString("es-CO")} ${inv.currency || "COP"}`, 196, y, { align: "right" });
+    y += 10;
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    const statusLabel = inv.status === "pagada" ? "PAGADA" : inv.status === "anulada" ? "ANULADA" : "PENDIENTE";
+    doc.text(`Estado: ${statusLabel}`, 14, y);
+    if (inv.paymentMethod) doc.text(`Método de pago: ${inv.paymentMethod}`, 14, y + 4);
+    if (inv.cuv) doc.text(`CUV RIPS: ${inv.cuv}`, 14, y + 8);
 
     doc.save(`${inv.invoiceNumber}.pdf`);
   };
@@ -343,7 +461,7 @@ export default function FacturacionPage() {
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">N° Factura</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Paciente</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Documento</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">CUPS</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Diagnóstico</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Total</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Estado</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Acciones</th>
@@ -355,7 +473,7 @@ export default function FacturacionPage() {
                 <td className="px-4 py-3 text-sm text-gray-800 font-mono">{inv.invoiceNumber}</td>
                 <td className="px-4 py-3 text-sm text-gray-800 font-medium">{inv.patientFirstName} {inv.patientLastName}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{inv.patientDocumentId}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{inv.cupsCode || "-"}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{inv.diagnosisCode || inv.diagnosis || "-"}</td>
                 <td className="px-4 py-3 text-sm text-gray-800 font-medium">${parseFloat(inv.total).toLocaleString("es-CO")}</td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
