@@ -34,6 +34,10 @@ export default function ExportarPage() {
   const [searchResults, setSearchResults] = useState<Record<string, unknown>[]>([]);
   const [searching, setSearching] = useState(false);
   const [company, setCompany] = useState<CompanyData | null>(null);
+  const [ripsResolution, setRipsResolution] = useState("2275");
+  const [ripsDateFrom, setRipsDateFrom] = useState("");
+  const [ripsDateTo, setRipsDateTo] = useState("");
+  const [ripsLoading, setRipsLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/empresa").then(r => r.json()).then(setCompany).catch(() => {});
@@ -540,6 +544,225 @@ export default function ExportarPage() {
     { type: "rips_indicators", description: "Indicadores de gestión de traslados", icon: "📈" },
   ];
 
+  const exportRIPS = async (format: "pdf" | "excel" | "json") => {
+    setRipsLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({
+        resolution: ripsResolution,
+        ...(ripsDateFrom && { dateFrom: ripsDateFrom }),
+        ...(ripsDateTo && { dateTo: ripsDateTo }),
+      });
+      const res = await fetch(`/api/exportar/rips?${params}`);
+      if (!res.ok) throw new Error("Error al obtener datos RIPS");
+      const data = await res.json();
+
+      if (format === "json") {
+        const blob = new Blob([JSON.stringify(data.data, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `RIPS_Res${ripsResolution}_${new Date().toISOString().split("T")[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else if (format === "pdf") {
+        const { jsPDF } = await import("jspdf");
+        const autoTable = (await import("jspdf-autotable")).default;
+        const doc = new jsPDF("landscape");
+        let y = 15;
+
+        if (company?.logo) {
+          try {
+            doc.addImage(company.logo, "JPEG", 14, y - 5, 20, 20);
+          } catch {}
+        }
+        const xT = company?.logo ? 38 : 14;
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text(company?.name || "EMPRESA", xT, y);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.text(`NIT: ${company?.nit || "N/A"} | Hab: ${company?.habilitacionCode || "N/A"}`, xT, y + 5);
+        y += 15;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, y, 283, y);
+        y += 5;
+
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        const resTitle =
+          ripsResolution === "3374"
+            ? "RIPS - Resolución 3374 de 2021 (AC/AP)"
+            : "RIPS - Resolución 2275 de 2023 (JSON)";
+        doc.text(resTitle, 148, y, { align: "center" });
+        y += 8;
+
+        if (ripsResolution === "3374" && data.files) {
+          for (const [fileKey, fileData] of Object.entries(
+            data.files as Record<string, Record<string, unknown>>
+          )) {
+            if (y > 180) {
+              doc.addPage();
+              y = 20;
+            }
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(37, 99, 235);
+            doc.text(
+              `${fileKey}: ${fileData.description as string}`,
+              14,
+              y
+            );
+            doc.setTextColor(0, 0, 0);
+            y += 5;
+
+            autoTable(doc, {
+              startY: y,
+              head: [fileData.headers as string[]],
+              body: fileData.rows as string[][],
+              styles: { fontSize: 6 },
+              headStyles: { fillColor: [37, 99, 235], fontSize: 6 },
+              margin: { left: 14, right: 14 },
+            });
+            y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+          }
+        } else if (ripsResolution === "2275" && data.data) {
+          const d = data.data as Record<string, unknown>;
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "normal");
+          doc.text(`Código Prestador: ${d.codigoPrestador || "-"}`, 14, y);
+          doc.text(`Factura: ${d.noFactura || "-"}`, 14, y + 5);
+          y += 12;
+
+          const usuarios = (d.usuarios as Record<string, unknown>[]) || [];
+          if (usuarios.length > 0) {
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.text(`Usuarios (${usuarios.length})`, 14, y);
+            y += 4;
+            autoTable(doc, {
+              startY: y,
+              head: [["Tipo Doc", "Documento", "Tipo Usuario", "Fecha Nac", "Sexo", "Mpio", "Depto", "EPS"]],
+              body: usuarios.map((u) => [
+                (u.tipoDocumentoIdentificacion as string) || "-",
+                (u.numeroDocumentoIdentificacion as string) || "-",
+                (u.tipoUsuario as string) || "-",
+                (u.fechaNacimiento as string) || "-",
+                (u.sexo as string) || "-",
+                (u.municipioResidencia as string) || "-",
+                (u.departamentoResidencia as string) || "-",
+                (u.aseguradora as string) || "-",
+              ]),
+              styles: { fontSize: 6 },
+              headStyles: { fillColor: [37, 99, 235], fontSize: 6 },
+            });
+            y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+          }
+
+          const servicios = (d.servicios as Record<string, unknown>) || {};
+          const consultas = (servicios.consultas as Record<string, unknown>[]) || [];
+          const procedimientos = (servicios.procedimientos as Record<string, unknown>[]) || [];
+
+          if (consultas.length > 0) {
+            if (y > 180) { doc.addPage(); y = 20; }
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.text(`Consultas (${consultas.length})`, 14, y);
+            y += 4;
+            autoTable(doc, {
+              startY: y,
+              head: [["Doc", "Fecha", "CUPS", "Diagnóstico", "Tipo"]],
+              body: consultas.map((c) => [
+                (c.numeroDocumentoIdentificacion as string) || "-",
+                (c.fechaAtencion as string) || "-",
+                (c.codigoCUPS as string) || "-",
+                ((c.diagnosticoPrincipal as string) || "-").substring(0, 30),
+                (c.tipoConsulta as string) || "-",
+              ]),
+              styles: { fontSize: 6 },
+              headStyles: { fillColor: [34, 139, 34], fontSize: 6 },
+            });
+            y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+          }
+
+          if (procedimientos.length > 0) {
+            if (y > 180) { doc.addPage(); y = 20; }
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.text(`Procedimientos (${procedimientos.length})`, 14, y);
+            y += 4;
+            autoTable(doc, {
+              startY: y,
+              head: [["Doc", "Fecha", "CUPS", "Descripción", "CIE-10", "Cant", "Valor"]],
+              body: procedimientos.map((p) => [
+                (p.numeroDocumentoIdentificacion as string) || "-",
+                (p.fechaAtencion as string) || "-",
+                (p.codigoProcedimiento as string) || "-",
+                ((p.descripcionProcedimiento as string) || "-").substring(0, 25),
+                (p.diagnosticoPrincipal as string) || "-",
+                (p.cantidad as string) || "1",
+                `$${parseFloat((p.valorTotal as string) || "0").toLocaleString("es-CO")}`,
+              ]),
+              styles: { fontSize: 6 },
+              headStyles: { fillColor: [255, 140, 0], fontSize: 6 },
+            });
+          }
+        }
+
+        doc.save(`RIPS_Res${ripsResolution}_${new Date().toISOString().split("T")[0]}.pdf`);
+      } else {
+        const XLSX = await import("xlsx");
+        const wb = XLSX.utils.book_new();
+
+        if (ripsResolution === "3374" && data.files) {
+          for (const [fileKey, fileData] of Object.entries(
+            data.files as Record<string, Record<string, unknown>>
+          )) {
+            const rows = (fileData.rows as string[][]).map((row) => {
+              const obj: Record<string, string> = {};
+              (fileData.headers as string[]).forEach((h, i) => {
+                obj[h] = row[i] || "";
+              });
+              return obj;
+            });
+            const ws = XLSX.utils.json_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, ws, fileKey);
+          }
+        } else if (ripsResolution === "2275" && data.data) {
+          const d = data.data as Record<string, unknown>;
+          const usuarios = (d.usuarios as Record<string, unknown>[]) || [];
+          if (usuarios.length > 0) {
+            const ws = XLSX.utils.json_to_sheet(usuarios);
+            XLSX.utils.book_append_sheet(wb, ws, "Usuarios");
+          }
+          const servicios = (d.servicios as Record<string, unknown>) || {};
+          const consultas = (servicios.consultas as Record<string, unknown>[]) || [];
+          const procedimientos = (servicios.procedimientos as Record<string, unknown>[]) || [];
+          if (consultas.length > 0) {
+            const ws = XLSX.utils.json_to_sheet(consultas);
+            XLSX.utils.book_append_sheet(wb, ws, "Consultas");
+          }
+          if (procedimientos.length > 0) {
+            const ws = XLSX.utils.json_to_sheet(procedimientos);
+            XLSX.utils.book_append_sheet(wb, ws, "Procedimientos");
+          }
+        }
+
+        XLSX.writeFile(
+          wb,
+          `RIPS_Res${ripsResolution}_${new Date().toISOString().split("T")[0]}.xlsx`
+        );
+      }
+    } catch (e) {
+      console.error(e);
+      setError("Error al exportar RIPS");
+    } finally {
+      setRipsLoading(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -584,6 +807,48 @@ export default function ExportarPage() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-1">Exportar RIPS</h2>
+        <p className="text-sm text-gray-500 mb-4">Seleccione la resolución y formato de exportación</p>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Resolución</label>
+            <select value={ripsResolution} onChange={(e) => setRipsResolution(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800">
+              <option value="2275">Res. 2275/2023 - JSON (actual)</option>
+              <option value="3374">Res. 3374/2021 - AC/AP/AT</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Desde Fecha</label>
+            <input type="date" value={ripsDateFrom} onChange={(e) => setRipsDateFrom(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Hasta Fecha</label>
+            <input type="date" value={ripsDateTo} onChange={(e) => setRipsDateTo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+          </div>
+          <div className="flex items-end">
+            <div className="bg-blue-50 rounded-lg px-3 py-2 text-xs text-blue-700 w-full">
+              {ripsResolution === "2275" ? (
+                <span><strong>Res. 2275:</strong> Formato JSON con usuarios, consultas y procedimientos según MinSalud</span>
+              ) : (
+                <span><strong>Res. 3374:</strong> Archivos AC (consultas) y AP (procedimientos) formato texto</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={() => exportRIPS("pdf")} disabled={ripsLoading} className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer">
+            {ripsLoading ? "Generando..." : "PDF"}
+          </button>
+          <button onClick={() => exportRIPS("excel")} disabled={ripsLoading} className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer">
+            {ripsLoading ? "Generando..." : "Excel"}
+          </button>
+          <button onClick={() => exportRIPS("json")} disabled={ripsLoading} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer">
+            {ripsLoading ? "Generando..." : "JSON"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

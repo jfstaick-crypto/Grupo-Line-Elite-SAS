@@ -174,6 +174,15 @@ export function getDb() {
         ciiu_code TEXT DEFAULT '',
         ciiu_description TEXT DEFAULT '',
         matricula_mercantil TEXT DEFAULT '',
+        invoice_prefix TEXT DEFAULT 'FE',
+        dian_resolution_number TEXT DEFAULT '',
+        dian_resolution_date TEXT DEFAULT '',
+        dian_authorized_from TEXT DEFAULT 'FE00000001',
+        dian_authorized_to TEXT DEFAULT 'FE99999999',
+        dian_software_id TEXT DEFAULT '',
+        dian_software_pin TEXT DEFAULT '',
+        dian_test_set_id TEXT DEFAULT '',
+        dian_production_mode INTEGER DEFAULT 0,
         slogan TEXT,
         logo TEXT,
         updated_at INTEGER
@@ -349,6 +358,15 @@ export function getDb() {
     safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN dian_status TEXT");
     safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN rips_status TEXT");
     safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN xml_content TEXT");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN invoice_prefix TEXT DEFAULT 'FE'");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_resolution_number TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_resolution_date TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_authorized_from TEXT DEFAULT 'FE00000001'");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_authorized_to TEXT DEFAULT 'FE99999999'");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_software_id TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_software_pin TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_test_set_id TEXT DEFAULT ''");
+    safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_production_mode INTEGER DEFAULT 0");
 
     _db = drizzle(sqlite, { schema });
 

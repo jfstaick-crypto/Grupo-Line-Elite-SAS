@@ -21,6 +21,15 @@ export default function EmpresaPage() {
     ciiuCode: "",
     ciiuDescription: "",
     matriculaMercantil: "",
+    invoicePrefix: "FE",
+    dianResolutionNumber: "",
+    dianResolutionDate: "",
+    dianAuthorizedFrom: "FE00000001",
+    dianAuthorizedTo: "FE99999999",
+    dianSoftwareId: "",
+    dianSoftwarePin: "",
+    dianTestSetId: "",
+    dianProductionMode: false,
     slogan: "",
     logo: "",
   });
@@ -28,6 +37,7 @@ export default function EmpresaPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [showDian, setShowDian] = useState(false);
 
   useEffect(() => {
     fetch("/api/empresa")
@@ -52,6 +62,15 @@ export default function EmpresaPage() {
             ciiuCode: data.ciiuCode || "",
             ciiuDescription: data.ciiuDescription || "",
             matriculaMercantil: data.matriculaMercantil || "",
+            invoicePrefix: data.invoicePrefix || "FE",
+            dianResolutionNumber: data.dianResolutionNumber || "",
+            dianResolutionDate: data.dianResolutionDate || "",
+            dianAuthorizedFrom: data.dianAuthorizedFrom || "FE00000001",
+            dianAuthorizedTo: data.dianAuthorizedTo || "FE99999999",
+            dianSoftwareId: data.dianSoftwareId || "",
+            dianSoftwarePin: data.dianSoftwarePin || "",
+            dianTestSetId: data.dianTestSetId || "",
+            dianProductionMode: !!data.dianProductionMode,
             slogan: data.slogan || "",
             logo: data.logo || "",
           });
@@ -212,6 +231,68 @@ export default function EmpresaPage() {
               <div className="mt-3">
                 <img src={form.logo} alt="Logo" className="h-20 border border-gray-200 rounded" />
                 <button type="button" onClick={() => set("logo", "")} className="mt-1 text-xs text-red-600 hover:text-red-800 cursor-pointer">Eliminar logo</button>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t pt-4">
+            <h3 className="text-md font-semibold text-gray-700 mb-3">Numeración y Resolución DIAN</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Prefijo de Facturación</label>
+                <input type="text" value={form.invoicePrefix} onChange={(e) => set("invoicePrefix", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="FE" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">N° Resolución DIAN</label>
+                <input type="text" value={form.dianResolutionNumber} onChange={(e) => set("dianResolutionNumber", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="18760000001234" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Resolución</label>
+                <input type="date" value={form.dianResolutionDate} onChange={(e) => set("dianResolutionDate", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Desde N°</label>
+                  <input type="text" value={form.dianAuthorizedFrom} onChange={(e) => set("dianAuthorizedFrom", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="FE00000001" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hasta N°</label>
+                  <input type="text" value={form.dianAuthorizedTo} onChange={(e) => set("dianAuthorizedTo", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" placeholder="FE99999999" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <button type="button" onClick={() => setShowDian(!showDian)} className="flex items-center gap-2 text-md font-semibold text-blue-700 hover:text-blue-900 cursor-pointer">
+              <span>{showDian ? "▾" : "▸"}</span>
+              <span>Configuración Facturación Electrónica DIAN (Proveedor Tecnológico)</span>
+            </button>
+            <p className="text-xs text-gray-500 mt-1 ml-6">Complete estos campos cuando tenga un Proveedor Tecnológico autorizado por la DIAN</p>
+
+            {showDian && (
+              <div className="mt-4 ml-2 p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Software ID (DIAN)</label>
+                    <input type="text" value={form.dianSoftwareId} onChange={(e) => set("dianSoftwareId", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 bg-white" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Software PIN (DIAN)</label>
+                    <input type="password" value={form.dianSoftwarePin} onChange={(e) => set("dianSoftwarePin", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 bg-white" placeholder="PIN del software" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Test Set ID (Pruebas)</label>
+                    <input type="text" value={form.dianTestSetId} onChange={(e) => set("dianTestSetId", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 bg-white" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                  </div>
+                  <div className="flex items-center gap-3 pt-5">
+                    <input type="checkbox" id="prodMode" checked={!!form.dianProductionMode} onChange={(e) => set("dianProductionMode", e.target.checked ? "1" : "")} className="w-4 h-4" />
+                    <label htmlFor="prodMode" className="text-sm font-medium text-gray-700">Modo Producción</label>
+                  </div>
+                </div>
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-xs text-yellow-800">
+                  <strong>Nota:</strong> Estos campos se completan con los datos que le proporciona su Proveedor Tecnológico autorizado por la DIAN (Carvajal, Facture, EnerBit, etc.). Mientras estén vacíos, la facturación electrónica no estará activa.
+                </div>
               </div>
             )}
           </div>
