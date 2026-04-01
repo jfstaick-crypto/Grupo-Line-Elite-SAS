@@ -94,6 +94,12 @@ export async function POST(request: Request) {
       occupation,
       country,
       countryCode,
+      birthCountry,
+      birthCountryCode,
+      birthDepartment,
+      birthDepartmentCode,
+      birthCity,
+      birthCityCode,
     } = body;
 
     if (!documentType || !documentId || !firstName || !lastName || !birthDate || !gender) {
@@ -135,6 +141,12 @@ export async function POST(request: Request) {
           occupation: occupation || null,
           country: country || null,
           countryCode: countryCode || null,
+          birthCountry: birthCountry || null,
+          birthCountryCode: birthCountryCode || null,
+          birthDepartment: birthDepartment || null,
+          birthDepartmentCode: birthDepartmentCode || null,
+          birthCity: birthCity || null,
+          birthCityCode: birthCityCode || null,
         })
         .where(eq(patients.documentId, documentId));
 
@@ -168,6 +180,12 @@ export async function POST(request: Request) {
       occupation: occupation || null,
       country: country || null,
       countryCode: countryCode || null,
+      birthCountry: birthCountry || null,
+      birthCountryCode: birthCountryCode || null,
+      birthDepartment: birthDepartment || null,
+      birthDepartmentCode: birthDepartmentCode || null,
+      birthCity: birthCity || null,
+      birthCityCode: birthCityCode || null,
     });
 
     return NextResponse.json({ success: true, message: "Paciente registrado" }, { status: 201 });

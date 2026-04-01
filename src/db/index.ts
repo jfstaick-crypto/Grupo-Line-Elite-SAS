@@ -66,6 +66,12 @@ export function getDb() {
         occupation TEXT,
         country TEXT,
         country_code TEXT,
+        birth_country TEXT,
+        birth_country_code TEXT,
+        birth_department TEXT,
+        birth_department_code TEXT,
+        birth_city TEXT,
+        birth_city_code TEXT,
         created_at INTEGER
       );
 
@@ -270,6 +276,12 @@ export function getDb() {
     safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN slogan TEXT");
     safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN country TEXT");
     safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN country_code TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_country TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_country_code TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_department TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_department_code TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_city TEXT");
+    safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_city_code TEXT");
 
     _db = drizzle(sqlite, { schema });
 

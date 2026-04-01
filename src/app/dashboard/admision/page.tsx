@@ -118,10 +118,19 @@ export default function AdmisionPage() {
     municipalityDaneCode: "",
     country: "Colombia",
     countryCode: "170",
+    birthCountry: "Colombia",
+    birthCountryCode: "170",
+    birthDepartment: "",
+    birthDepartmentCode: "",
+    birthCity: "",
+    birthCityCode: "",
   });
 
   const [municipalitySearch, setMunicipalitySearch] = useState("");
   const [countrySearch, setCountrySearch] = useState("");
+  const [birthCountrySearch, setBirthCountrySearch] = useState("");
+  const [birthDepartmentSearch, setBirthDepartmentSearch] = useState("");
+  const [birthCitySearch, setBirthCitySearch] = useState("");
 
   const [admissionForm, setAdmissionForm] = useState({
     patientId: 0,
@@ -190,6 +199,12 @@ export default function AdmisionPage() {
           municipalityDaneCode: data.municipalityDaneCode || "",
           country: data.country || "Colombia",
           countryCode: data.countryCode || "170",
+          birthCountry: data.birthCountry || "Colombia",
+          birthCountryCode: data.birthCountryCode || "170",
+          birthDepartment: data.birthDepartment || "",
+          birthDepartmentCode: data.birthDepartmentCode || "",
+          birthCity: data.birthCity || "",
+          birthCityCode: data.birthCityCode || "",
         });
         setShowPatientForm(true);
       } else {
@@ -403,8 +418,162 @@ export default function AdmisionPage() {
                     <label className="block text-xs font-medium text-gray-600 mb-1">Ocupación</label>
                     <input type="text" value={patientForm.occupation} onChange={(e) => setPatientForm({ ...patientForm, occupation: e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
                   </div>
+                  <div className="col-span-4 mt-2 mb-1">
+                    <h4 className="text-sm font-semibold text-blue-700 border-b border-blue-200 pb-1">Lugar de Nacimiento</h4>
+                  </div>
                   <div className="relative">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">País</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">País de Nacimiento</label>
+                    <input
+                      type="text"
+                      value={birthCountrySearch || patientForm.birthCountry}
+                      onChange={(e) => setBirthCountrySearch(e.target.value)}
+                      placeholder="Buscar país..."
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                    />
+                    {birthCountrySearch && (
+                      <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                        {PAISES
+                          .filter((p) => p.name.toLowerCase().includes(birthCountrySearch.toLowerCase()))
+                          .slice(0, 20)
+                          .map((p) => (
+                            <div
+                              key={p.code}
+                              onClick={() => {
+                                const updates: Record<string, string> = { birthCountry: p.name, birthCountryCode: p.code };
+                                if (p.name !== "Colombia") {
+                                  updates.birthDepartment = "";
+                                  updates.birthDepartmentCode = "";
+                                  updates.birthCity = "";
+                                  updates.birthCityCode = "";
+                                }
+                                setPatientForm({ ...patientForm, ...updates });
+                                setBirthCountrySearch("");
+                                setBirthDepartmentSearch("");
+                                setBirthCitySearch("");
+                              }}
+                              className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 flex justify-between"
+                            >
+                              <span>{p.name}</span>
+                              <span className="text-gray-400 text-xs">{p.code}</span>
+                            </div>
+                          ))}
+                        {PAISES.filter((p) => p.name.toLowerCase().includes(birthCountrySearch.toLowerCase())).length === 0 && (
+                          <div className="px-3 py-2 text-sm text-gray-400">No se encontraron países</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Código País Nac.</label>
+                    <input type="text" value={patientForm.birthCountryCode} readOnly className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm" />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Depto. de Nacimiento</label>
+                    {patientForm.birthCountry === "Colombia" ? (
+                      <>
+                        <input
+                          type="text"
+                          value={birthDepartmentSearch || patientForm.birthDepartment}
+                          onChange={(e) => setBirthDepartmentSearch(e.target.value)}
+                          placeholder="Buscar departamento..."
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                        />
+                        {birthDepartmentSearch && (
+                          <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                            {Object.keys(DEPARTAMENTOS_DANE).sort()
+                              .filter((d) => d.toLowerCase().includes(birthDepartmentSearch.toLowerCase()))
+                              .map((d) => (
+                                <div
+                                  key={d}
+                                  onClick={() => {
+                                    setPatientForm({ ...patientForm, birthDepartment: d, birthDepartmentCode: DEPARTAMENTOS_DANE[d], birthCity: "", birthCityCode: "" });
+                                    setBirthDepartmentSearch("");
+                                    setBirthCitySearch("");
+                                  }}
+                                  className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 flex justify-between"
+                                >
+                                  <span>{d}</span>
+                                  <span className="text-gray-400 text-xs">{DEPARTAMENTOS_DANE[d]}</span>
+                                </div>
+                              ))}
+                            {Object.keys(DEPARTAMENTOS_DANE).filter((d) => d.toLowerCase().includes(birthDepartmentSearch.toLowerCase())).length === 0 && (
+                              <div className="px-3 py-2 text-sm text-gray-400">No se encontraron departamentos</div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <input
+                        type="text"
+                        value={patientForm.birthDepartment}
+                        onChange={(e) => setPatientForm({ ...patientForm, birthDepartment: e.target.value, birthDepartmentCode: "" })}
+                        placeholder="Ingrese departamento"
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Código DANE Dept. Nac.</label>
+                    <input type="text" value={patientForm.birthDepartmentCode} readOnly className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm" />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Ciudad de Nacimiento</label>
+                    {patientForm.birthCountry === "Colombia" ? (
+                      <>
+                        <input
+                          type="text"
+                          value={birthCitySearch || patientForm.birthCity}
+                          onChange={(e) => setBirthCitySearch(e.target.value)}
+                          onFocus={() => { if (!birthCitySearch && patientForm.birthCity) setBirthCitySearch(""); }}
+                          placeholder={patientForm.birthDepartment ? "Buscar municipio..." : "Seleccione depto. primero"}
+                          disabled={!patientForm.birthDepartment}
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800 disabled:bg-gray-100"
+                        />
+                        {birthCitySearch && patientForm.birthDepartment && (
+                          <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                            {(MUNICIPIOS[patientForm.birthDepartment] || [])
+                              .filter((m) => m.name.toLowerCase().includes(birthCitySearch.toLowerCase()))
+                              .slice(0, 20)
+                              .map((m) => (
+                                <div
+                                  key={m.daneCode}
+                                  onClick={() => {
+                                    setPatientForm({ ...patientForm, birthCity: m.name, birthCityCode: m.daneCode });
+                                    setBirthCitySearch("");
+                                  }}
+                                  className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 flex justify-between"
+                                >
+                                  <span>{m.name}</span>
+                                  <span className="text-gray-400 text-xs">{m.daneCode}</span>
+                                </div>
+                              ))}
+                            {(MUNICIPIOS[patientForm.birthDepartment] || [])
+                              .filter((m) => m.name.toLowerCase().includes(birthCitySearch.toLowerCase()))
+                              .length === 0 && (
+                              <div className="px-3 py-2 text-sm text-gray-400">No se encontraron municipios</div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <input
+                        type="text"
+                        value={patientForm.birthCity}
+                        onChange={(e) => setPatientForm({ ...patientForm, birthCity: e.target.value, birthCityCode: "" })}
+                        placeholder="Ingrese ciudad"
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Código DANE Mpio. Nac.</label>
+                    <input type="text" value={patientForm.birthCityCode} readOnly className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm" />
+                  </div>
+                  <div className="col-span-4 mt-2 mb-1">
+                    <h4 className="text-sm font-semibold text-green-700 border-b border-green-200 pb-1">Lugar de Residencia</h4>
+                  </div>
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">País de Residencia</label>
                     <input
                       type="text"
                       value={countrySearch || patientForm.country}
@@ -437,11 +606,11 @@ export default function AdmisionPage() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Código País</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Código País Res.</label>
                     <input type="text" value={patientForm.countryCode} readOnly className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Departamento</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Depto. de Residencia</label>
                     <select
                       value={patientForm.locality}
                       onChange={(e) => {
@@ -459,17 +628,17 @@ export default function AdmisionPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Código DANE Dept.</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Código DANE Dept. Res.</label>
                     <input type="text" value={patientForm.daneCode} readOnly className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm" />
                   </div>
                   <div className="relative">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Municipio</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Municipio de Residencia</label>
                     <input
                       type="text"
                       value={municipalitySearch || patientForm.municipality}
                       onChange={(e) => setMunicipalitySearch(e.target.value)}
                       onFocus={() => { if (!municipalitySearch && patientForm.municipality) setMunicipalitySearch(""); }}
-                      placeholder={patientForm.locality ? "Buscar municipio..." : "Seleccione departamento primero"}
+                      placeholder={patientForm.locality ? "Buscar municipio..." : "Seleccione depto. primero"}
                       disabled={!patientForm.locality}
                       className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800 disabled:bg-gray-100"
                     />
@@ -500,7 +669,7 @@ export default function AdmisionPage() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Código DANE Mpio.</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Código DANE Mpio. Res.</label>
                     <input type="text" value={patientForm.municipalityDaneCode} readOnly className="w-full px-2 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm" />
                   </div>
                   <div className="col-span-4">

@@ -66,6 +66,12 @@ export const patients = sqliteTable("patients", {
   occupation: text("occupation"),
   country: text("country"),
   countryCode: text("country_code"),
+  birthCountry: text("birth_country"),
+  birthCountryCode: text("birth_country_code"),
+  birthDepartment: text("birth_department"),
+  birthDepartmentCode: text("birth_department_code"),
+  birthCity: text("birth_city"),
+  birthCityCode: text("birth_city_code"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
     () => new Date()
   ),
