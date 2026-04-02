@@ -10,10 +10,11 @@ export async function GET() {
     const allUsers = await db.select().from(users).limit(5);
 
     return NextResponse.json({
-      status: "OK",
-      database: "SQLite local",
+      status: "ok",
+      database: process.env.TURSO_DATABASE_URL ? "Turso (nube)" : "SQLite (local)",
+      tursoUrl: process.env.TURSO_DATABASE_URL ? "Configurado" : "No configurado",
       userCount: allUsers.length,
-      users: allUsers.map((u) => ({
+      users: allUsers.map((u: Record<string, unknown>) => ({
         id: u.id,
         username: u.username,
         role: u.role,

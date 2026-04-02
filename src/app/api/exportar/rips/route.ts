@@ -74,7 +74,7 @@ export async function GET(request: Request) {
     .orderBy(invoices.createdAt);
 
   const allPatients = await db.select().from(patients);
-  const patientMap = Object.fromEntries(allPatients.map((p) => [p.id, p]));
+  const patientMap = Object.fromEntries(allPatients.map((p: Record<string, unknown>) => [p.id, p]));
 
   if (resolution === "3374") {
     return generateRes3374(company, allInvoices, patientMap, db);

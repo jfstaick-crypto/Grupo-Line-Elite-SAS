@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.2",
     "better-sqlite3": "^12.8.0",
     "drizzle-orm": "^0.45.2",
     "iron-session": "^8.0.4",
