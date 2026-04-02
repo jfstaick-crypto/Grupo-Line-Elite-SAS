@@ -23,6 +23,12 @@ const ROLE_LABELS: Record<string, string> = {
 
 const NAV_ITEMS = [
   {
+    id: "empresa",
+    label: "Empresa",
+    href: "/dashboard/empresa",
+    icon: "🏢",
+  },
+  {
     id: "usuarios",
     label: "Usuarios",
     href: "/dashboard/usuarios",
@@ -47,22 +53,16 @@ const NAV_ITEMS = [
     icon: "📝",
   },
   {
-    id: "exportar",
-    label: "Exportar",
-    href: "/dashboard/exportar",
-    icon: "📊",
-  },
-  {
     id: "facturacion",
     label: "Facturación",
     href: "/dashboard/facturacion",
     icon: "💰",
   },
   {
-    id: "empresa",
-    label: "Empresa",
-    href: "/dashboard/empresa",
-    icon: "🏢",
+    id: "exportar",
+    label: "Exportar",
+    href: "/dashboard/exportar",
+    icon: "📊",
   },
 ];
 
