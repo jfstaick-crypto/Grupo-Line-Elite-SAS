@@ -108,9 +108,8 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 pt-4 border-t border-gray-200">
-          <p className="text-xs text-gray-400 text-center">
-            Usuarios de prueba: admin/admin123 | admision/admision123 |
-            medico/medico123
+          <p className="text-xs font-semibold text-blue-700 text-center tracking-wider uppercase">
+            Porque usted es nuestra razón de ser
           </p>
         </div>
       </div>
