@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/db";
+import { getDb, ensureInitialized } from "@/db";
 import { users } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    await ensureInitialized();
     const db = getDb();
-    const allUsers = await db.select().from(users).limit(5);
+    const allUsers = await db.select().from(users).limit(10);
 
     return NextResponse.json({
       status: "ok",

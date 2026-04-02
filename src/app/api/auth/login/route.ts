@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/db";
+import { getDb, ensureInitialized } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sealData } from "iron-session";
@@ -22,6 +22,7 @@ export async function POST(request: Request) {
       );
     }
 
+    await ensureInitialized();
     const db = getDb();
 
     const foundUsers = await db

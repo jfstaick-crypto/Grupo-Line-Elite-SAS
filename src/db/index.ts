@@ -2,6 +2,7 @@ import * as schema from "./schema";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _db: any = null;
+let _initialized = false;
 
 const CREATE_TABLES_SQL = `
   CREATE TABLE IF NOT EXISTS users (
@@ -236,188 +237,209 @@ const CREATE_TABLES_SQL = `
   );
 `;
 
-const SEED_SQL = `
-  INSERT OR IGNORE INTO users (username, password, full_name, role, active, created_at)
-  VALUES
-    ('admin', 'admin123', 'Administrador del Sistema', 'administrador', 1, ${Date.now()}),
-    ('admision', 'admision123', 'Usuario de Admision', 'admision', 1, ${Date.now()}),
-    ('medico', 'medico123', 'Dr. Medico General', 'medico', 1, ${Date.now()});
-`;
-
 export function getDb() {
-  if (_db) return _db;
+  if (!_db) {
+    const tursoUrl = process.env.TURSO_DATABASE_URL;
+    const tursoToken = process.env.TURSO_AUTH_TOKEN;
 
-  const tursoUrl = process.env.TURSO_DATABASE_URL;
-  const tursoToken = process.env.TURSO_AUTH_TOKEN;
+    if (tursoUrl && tursoToken) {
+      const { createClient } = require("@libsql/client");
+      const { drizzle } = require("drizzle-orm/libsql");
+      const client = createClient({ url: tursoUrl, authToken: tursoToken });
+      _db = drizzle(client, { schema });
+      _db._client = client;
+    } else {
+      const { drizzle } = require("drizzle-orm/better-sqlite3");
+      const Database = require("better-sqlite3");
+      const path = require("path");
+      const fs = require("fs");
 
-  if (tursoUrl && tursoToken) {
-    _db = initTurso(tursoUrl, tursoToken);
-  } else {
-    _db = initLocal();
+      const DB_PATH = path.join(process.cwd(), "data", "hospital.db");
+      const dir = path.dirname(DB_PATH);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      const sqlite = new Database(DB_PATH);
+      sqlite.pragma("journal_mode = WAL");
+      sqlite.pragma("foreign_keys = ON");
+      sqlite.exec(CREATE_TABLES_SQL);
+
+      runLocalMigrations(sqlite);
+
+      const userCount = sqlite
+        .prepare("SELECT COUNT(*) as count FROM users")
+        .get() as { count: number };
+      if (userCount.count === 0) {
+        const now = Date.now();
+        const insert = sqlite.prepare(
+          `INSERT INTO users (username, password, full_name, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)`
+        );
+        insert.run("admin", "admin123", "Administrador del Sistema", "administrador", now);
+        insert.run("admision", "admision123", "Usuario de Admision", "admision", now);
+        insert.run("medico", "medico123", "Dr. Medico General", "medico", now);
+      }
+
+      _db = drizzle(sqlite, { schema });
+      _db._sqlite = sqlite;
+    }
   }
-
   return _db;
 }
 
-function initTurso(url: string, token: string) {
-  const { createClient } = require("@libsql/client");
-  const { drizzle } = require("drizzle-orm/libsql");
+export async function ensureInitialized() {
+  if (_initialized) return;
+  _initialized = true;
 
-  const client = createClient({ url, authToken: token });
+  const db = getDb();
+  const tursoUrl = process.env.TURSO_DATABASE_URL;
 
-  client.executeMultiple(CREATE_TABLES_SQL);
-  client.executeMultiple(SEED_SQL);
+  if (tursoUrl && db._client) {
+    // Create tables in Turso
+    await db._client.executeMultiple(CREATE_TABLES_SQL);
 
-  return drizzle(client, { schema });
+    // Seed users if empty
+    const result = await db._client.execute(
+      "SELECT COUNT(*) as count FROM users"
+    );
+    const count = result.rows[0]?.count || 0;
+
+    if (count === 0) {
+      const now = Date.now();
+      await db._client.executeMultiple(`
+        INSERT INTO users (username, password, full_name, role, active, created_at)
+        VALUES ('admin', 'admin123', 'Administrador del Sistema', 'administrador', 1, ${now});
+        INSERT INTO users (username, password, full_name, role, active, created_at)
+        VALUES ('admision', 'admision123', 'Usuario de Admision', 'admision', 1, ${now});
+        INSERT INTO users (username, password, full_name, role, active, created_at)
+        VALUES ('medico', 'medico123', 'Dr. Medico General', 'medico', 1, ${now});
+      `);
+    }
+  }
 }
 
-function initLocal() {
-  const { drizzle } = require("drizzle-orm/better-sqlite3");
-  const Database = require("better-sqlite3");
-  const path = require("path");
-  const fs = require("fs");
+function runLocalMigrations(sqlite: { exec(sql: string): void }) {
+  const migrations = [
+    "ALTER TABLE patients ADD COLUMN document_type TEXT NOT NULL DEFAULT 'CC'",
+    "ALTER TABLE patients ADD COLUMN middle_name TEXT",
+    "ALTER TABLE patients ADD COLUMN second_last_name TEXT",
+    "ALTER TABLE patients ADD COLUMN marital_status TEXT",
+    "ALTER TABLE patients ADD COLUMN city TEXT",
+    "ALTER TABLE patients ADD COLUMN locality TEXT",
+    "ALTER TABLE patients ADD COLUMN neighborhood TEXT",
+    "ALTER TABLE patients ADD COLUMN insurance TEXT",
+    "ALTER TABLE patients ADD COLUMN regime TEXT",
+    "ALTER TABLE patients ADD COLUMN occupation TEXT",
+    "ALTER TABLE patients ADD COLUMN dane_code TEXT",
+    "ALTER TABLE patients ADD COLUMN municipality TEXT",
+    "ALTER TABLE patients ADD COLUMN municipality_dane_code TEXT",
+    "ALTER TABLE patients ADD COLUMN email TEXT",
+    "ALTER TABLE patients ADD COLUMN user_type TEXT",
+    "ALTER TABLE patients ADD COLUMN affiliate_number TEXT",
+    "ALTER TABLE patients ADD COLUMN country TEXT",
+    "ALTER TABLE patients ADD COLUMN country_code TEXT",
+    "ALTER TABLE patients ADD COLUMN birth_country TEXT",
+    "ALTER TABLE patients ADD COLUMN birth_country_code TEXT",
+    "ALTER TABLE patients ADD COLUMN birth_department TEXT",
+    "ALTER TABLE patients ADD COLUMN birth_department_code TEXT",
+    "ALTER TABLE patients ADD COLUMN birth_city TEXT",
+    "ALTER TABLE patients ADD COLUMN birth_city_code TEXT",
+    "ALTER TABLE admissions ADD COLUMN assigned_doctor_id INTEGER REFERENCES users(id)",
+    "ALTER TABLE admissions ADD COLUMN assigned_nurse_id INTEGER REFERENCES users(id)",
+    "ALTER TABLE admissions ADD COLUMN companion_name TEXT",
+    "ALTER TABLE admissions ADD COLUMN companion_relationship TEXT",
+    "ALTER TABLE admissions ADD COLUMN companion_phone TEXT",
+    "ALTER TABLE transfers ADD COLUMN authorization_number TEXT",
+    "ALTER TABLE transfers ADD COLUMN diagnosis TEXT",
+    "ALTER TABLE transfers ADD COLUMN origin_city TEXT",
+    "ALTER TABLE transfers ADD COLUMN origin_institution TEXT",
+    "ALTER TABLE transfers ADD COLUMN origin_phone TEXT",
+    "ALTER TABLE transfers ADD COLUMN destination_city TEXT",
+    "ALTER TABLE transfers ADD COLUMN destination_institution TEXT",
+    "ALTER TABLE transfers ADD COLUMN destination_phone TEXT",
+    "ALTER TABLE transfers ADD COLUMN ambulance_plate TEXT",
+    "ALTER TABLE transfers ADD COLUMN tam TEXT",
+    "ALTER TABLE transfers ADD COLUMN tab TEXT",
+    "ALTER TABLE transfers ADD COLUMN request_date TEXT",
+    "ALTER TABLE transfers ADD COLUMN responsible_entity TEXT",
+    "ALTER TABLE transfers ADD COLUMN call_time TEXT",
+    "ALTER TABLE transfers ADD COLUMN promise_time TEXT",
+    "ALTER TABLE transfers ADD COLUMN origin_departure_city TEXT",
+    "ALTER TABLE transfers ADD COLUMN pickup_location TEXT",
+    "ALTER TABLE transfers ADD COLUMN arrival_ips_origin_time TEXT",
+    "ALTER TABLE transfers ADD COLUMN pickup_date TEXT",
+    "ALTER TABLE transfers ADD COLUMN pickup_time TEXT",
+    "ALTER TABLE transfers ADD COLUMN destination_city_arrival TEXT",
+    "ALTER TABLE transfers ADD COLUMN destination_location TEXT",
+    "ALTER TABLE transfers ADD COLUMN arrival_ips_destination_time TEXT",
+    "ALTER TABLE transfers ADD COLUMN delivery_date TEXT",
+    "ALTER TABLE transfers ADD COLUMN delivery_time TEXT",
+    "ALTER TABLE transfers ADD COLUMN return_date TEXT",
+    "ALTER TABLE transfers ADD COLUMN return_time TEXT",
+    "ALTER TABLE transfers ADD COLUMN driver_name TEXT",
+    "ALTER TABLE transfers ADD COLUMN auxiliary_name TEXT",
+    "ALTER TABLE transfers ADD COLUMN auxiliary_document TEXT",
+    "ALTER TABLE transfers ADD COLUMN doctor_name TEXT",
+    "ALTER TABLE transfers ADD COLUMN doctor_document TEXT",
+    "ALTER TABLE transfers ADD COLUMN value TEXT",
+    "ALTER TABLE transfers ADD COLUMN status TEXT NOT NULL DEFAULT 'pendiente'",
+    "ALTER TABLE transfers ADD COLUMN cups_code TEXT",
+    "ALTER TABLE transfers ADD COLUMN cups_description TEXT",
+    "ALTER TABLE transfers ADD COLUMN receiver_name TEXT",
+    "ALTER TABLE transfers ADD COLUMN receiver_document TEXT",
+    "ALTER TABLE transfers ADD COLUMN receiver_signature TEXT",
+    "ALTER TABLE transfers ADD COLUMN delivery_observations TEXT",
+    "ALTER TABLE users ADD COLUMN address TEXT",
+    "ALTER TABLE users ADD COLUMN phone TEXT",
+    "ALTER TABLE users ADD COLUMN email TEXT",
+    "ALTER TABLE users ADD COLUMN signature TEXT",
+    "ALTER TABLE clinical_histories ADD COLUMN discharge_conditions TEXT",
+    "ALTER TABLE clinical_histories ADD COLUMN evolutions TEXT",
+    "ALTER TABLE clinical_histories ADD COLUMN nurse_id INTEGER REFERENCES users(id)",
+    "ALTER TABLE clinical_histories ADD COLUMN driver_id INTEGER REFERENCES users(id)",
+    "ALTER TABLE clinical_histories ADD COLUMN hc_code TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE clinical_histories ADD COLUMN physical_exam TEXT",
+    "ALTER TABLE company_settings ADD COLUMN slogan TEXT",
+    "ALTER TABLE company_settings ADD COLUMN nit_digit_verifier TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN dane_code_city TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN dane_code_dept TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN department TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN tax_regime TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN fiscal_responsibility TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN ciiu_code TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN ciiu_description TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN matricula_mercantil TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN invoice_prefix TEXT DEFAULT 'FE'",
+    "ALTER TABLE company_settings ADD COLUMN dian_resolution_number TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN dian_resolution_date TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN dian_authorized_from TEXT DEFAULT 'FE00000001'",
+    "ALTER TABLE company_settings ADD COLUMN dian_authorized_to TEXT DEFAULT 'FE99999999'",
+    "ALTER TABLE company_settings ADD COLUMN dian_software_id TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN dian_software_pin TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN dian_test_set_id TEXT DEFAULT ''",
+    "ALTER TABLE company_settings ADD COLUMN dian_production_mode INTEGER DEFAULT 0",
+    "ALTER TABLE invoices ADD COLUMN invoice_prefix TEXT DEFAULT 'FE'",
+    "ALTER TABLE invoices ADD COLUMN invoice_type TEXT DEFAULT '01'",
+    "ALTER TABLE invoices ADD COLUMN diagnosis_code TEXT",
+    "ALTER TABLE invoices ADD COLUMN contract_number TEXT",
+    "ALTER TABLE invoices ADD COLUMN payment_modality TEXT",
+    "ALTER TABLE invoices ADD COLUMN benefit_plan TEXT",
+    "ALTER TABLE invoices ADD COLUMN currency TEXT DEFAULT 'COP'",
+    "ALTER TABLE invoices ADD COLUMN discount TEXT DEFAULT '0'",
+    "ALTER TABLE invoices ADD COLUMN payment_method_code TEXT",
+    "ALTER TABLE invoices ADD COLUMN due_date INTEGER",
+    "ALTER TABLE invoices ADD COLUMN cufe TEXT",
+    "ALTER TABLE invoices ADD COLUMN cuv TEXT",
+    "ALTER TABLE invoices ADD COLUMN dian_status TEXT",
+    "ALTER TABLE invoices ADD COLUMN rips_status TEXT",
+    "ALTER TABLE invoices ADD COLUMN xml_content TEXT",
+  ];
 
-  const DB_PATH = path.join(process.cwd(), "data", "hospital.db");
-  const dir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  const sqlite = new Database(DB_PATH);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-
-  sqlite.exec(CREATE_TABLES_SQL);
-
-  // Local migrations for existing databases
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN document_type TEXT NOT NULL DEFAULT 'CC'");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN middle_name TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN second_last_name TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN marital_status TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN city TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN locality TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN neighborhood TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN insurance TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN regime TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN occupation TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN dane_code TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN municipality TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN municipality_dane_code TEXT");
-  safeAlter(sqlite, "ALTER TABLE admissions ADD COLUMN assigned_doctor_id INTEGER REFERENCES users(id)");
-  safeAlter(sqlite, "ALTER TABLE admissions ADD COLUMN assigned_nurse_id INTEGER REFERENCES users(id)");
-  safeAlter(sqlite, "ALTER TABLE admissions ADD COLUMN companion_name TEXT");
-  safeAlter(sqlite, "ALTER TABLE admissions ADD COLUMN companion_relationship TEXT");
-  safeAlter(sqlite, "ALTER TABLE admissions ADD COLUMN companion_phone TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN authorization_number TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN diagnosis TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN origin_city TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN origin_institution TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN origin_phone TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN destination_city TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN destination_institution TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN destination_phone TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN ambulance_plate TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN tam TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN tab TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN request_date TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN responsible_entity TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN call_time TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN promise_time TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN origin_departure_city TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN pickup_location TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN arrival_ips_origin_time TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN pickup_date TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN pickup_time TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN destination_city_arrival TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN destination_location TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN arrival_ips_destination_time TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN delivery_date TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN delivery_time TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN return_date TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN return_time TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN driver_name TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN auxiliary_name TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN auxiliary_document TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN doctor_name TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN doctor_document TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN value TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN status TEXT NOT NULL DEFAULT 'pendiente'");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN cups_code TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN cups_description TEXT");
-  safeAlter(sqlite, "ALTER TABLE users ADD COLUMN address TEXT");
-  safeAlter(sqlite, "ALTER TABLE users ADD COLUMN phone TEXT");
-  safeAlter(sqlite, "ALTER TABLE users ADD COLUMN email TEXT");
-  safeAlter(sqlite, "ALTER TABLE users ADD COLUMN signature TEXT");
-  safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN discharge_conditions TEXT");
-  safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN evolutions TEXT");
-  safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN nurse_id INTEGER REFERENCES users(id)");
-  safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN driver_id INTEGER REFERENCES users(id)");
-  safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN hc_code TEXT NOT NULL DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE clinical_histories ADD COLUMN physical_exam TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN receiver_name TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN receiver_document TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN receiver_signature TEXT");
-  safeAlter(sqlite, "ALTER TABLE transfers ADD COLUMN delivery_observations TEXT");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN slogan TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN country TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN country_code TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_country TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_country_code TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_department TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_department_code TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_city TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN birth_city_code TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN email TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN user_type TEXT");
-  safeAlter(sqlite, "ALTER TABLE patients ADD COLUMN affiliate_number TEXT");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN nit_digit_verifier TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dane_code_city TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dane_code_dept TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN department TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN tax_regime TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN fiscal_responsibility TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN ciiu_code TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN ciiu_description TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN matricula_mercantil TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN invoice_prefix TEXT DEFAULT 'FE'");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN invoice_type TEXT DEFAULT '01'");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN diagnosis_code TEXT");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN contract_number TEXT");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN payment_modality TEXT");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN benefit_plan TEXT");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN currency TEXT DEFAULT 'COP'");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN discount TEXT DEFAULT '0'");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN payment_method_code TEXT");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN due_date INTEGER");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN cufe TEXT");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN cuv TEXT");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN dian_status TEXT");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN rips_status TEXT");
-  safeAlter(sqlite, "ALTER TABLE invoices ADD COLUMN xml_content TEXT");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN invoice_prefix TEXT DEFAULT 'FE'");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_resolution_number TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_resolution_date TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_authorized_from TEXT DEFAULT 'FE00000001'");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_authorized_to TEXT DEFAULT 'FE99999999'");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_software_id TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_software_pin TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_test_set_id TEXT DEFAULT ''");
-  safeAlter(sqlite, "ALTER TABLE company_settings ADD COLUMN dian_production_mode INTEGER DEFAULT 0");
-
-  const userCount = sqlite
-    .prepare("SELECT COUNT(*) as count FROM users")
-    .get() as { count: number };
-  if (userCount.count === 0) {
-    sqlite.exec(SEED_SQL);
-  }
-
-  return drizzle(sqlite, { schema });
-}
-
-function safeAlter(sqlite: { exec(sql: string): void }, sql: string) {
-  try {
-    sqlite.exec(sql);
-  } catch {
-    // Column already exists
+  for (const sql of migrations) {
+    try {
+      sqlite.exec(sql);
+    } catch {
+      // Column already exists
+    }
   }
 }
