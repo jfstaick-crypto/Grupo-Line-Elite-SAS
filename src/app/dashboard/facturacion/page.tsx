@@ -170,6 +170,22 @@ export default function FacturacionPage() {
     if (invRes.ok) setInvoices(await invRes.json());
   };
 
+  const addToCartera = async (invoiceId: number) => {
+    const res = await fetch("/api/cartera", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ invoiceId }),
+    });
+    if (res.ok) {
+      setSuccess("Factura agregada a cartera exitosamente");
+      setTimeout(() => setSuccess(""), 3000);
+    } else {
+      const data = await res.json();
+      setError(data.error || "Error al agregar a cartera");
+      setTimeout(() => setError(""), 3000);
+    }
+  };
+
   const exportInvoicePDF = async (inv: Invoice) => {
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF();
@@ -486,6 +502,7 @@ export default function FacturacionPage() {
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
                   <button onClick={() => exportInvoicePDF(inv)} className="text-red-600 hover:text-red-800 text-xs cursor-pointer">PDF</button>
+                  <button onClick={() => addToCartera(inv.id)} className="text-blue-600 hover:text-blue-800 text-xs cursor-pointer">→ Cartera</button>
                   {inv.status === "pendiente" && (
                     <>
                       <button onClick={() => handleStatusChange(inv.id, "pagada")} className="text-green-600 hover:text-green-800 text-xs cursor-pointer">Pagar</button>
