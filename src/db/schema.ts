@@ -325,6 +325,59 @@ export const invoiceLines = sqliteTable("invoice_lines", {
   totalLine: text("total_line").notNull().default("0"),
 });
 
+export const accountsReceivable = sqliteTable("accounts_receivable", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  invoiceId: integer("invoice_id")
+    .notNull()
+    .references(() => invoices.id),
+  patientId: integer("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  documentId: text("document_id").notNull(),
+  patientName: text("patient_name").notNull(),
+  insuranceCompany: text("insurance_company"),
+  contractNumber: text("contract_number"),
+  totalAmount: text("total_amount").notNull().default("0"),
+  paidAmount: text("paid_amount").default("0"),
+  pendingAmount: text("pending_amount").notNull().default("0"),
+  agingDays: integer("aging_days").notNull().default(0),
+  agingBucket: text("aging_bucket").notNull().default("corriente"),
+  status: text("status").notNull().default("pendiente"),
+  dueDate: integer("due_date", { mode: "timestamp" }),
+  firstBillingDate: integer("first_billing_date", { mode: "timestamp" }),
+  lastPaymentDate: integer("last_payment_date", { mode: "timestamp" }),
+  paymentCount: integer("payment_count").notNull().default(0),
+  observations: text("observations"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
+
+export const payments = sqliteTable("payments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  accountReceivableId: integer("account_receivable_id")
+    .notNull()
+    .references(() => accountsReceivable.id),
+  invoiceId: integer("invoice_id")
+    .references(() => invoices.id),
+  amount: text("amount").notNull().default("0"),
+  paymentMethod: text("payment_method"),
+  paymentMethodCode: text("payment_method_code"),
+  referenceNumber: text("reference_number"),
+  bankName: text("bank_name"),
+  paymentDate: integer("payment_date", { mode: "timestamp" }).notNull(),
+  collectedBy: integer("collected_by")
+    .notNull()
+    .references(() => users.id),
+  observations: text("observations"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const auditLog = sqliteTable("audit_log", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id")
@@ -338,3 +391,25 @@ export const auditLog = sqliteTable("audit_log", {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+export const agingBuckets = [
+  "corriente",
+  "1_30",
+  "31_60",
+  "61_90",
+  "91_180",
+  "181_360",
+  "mas_360",
+] as const;
+
+export const receivableStatuses = [
+  "pendiente",
+  "parcial",
+  "pagada",
+  "cobro_judicial",
+  "castigada",
+  "negociada",
+] as const;
+
+export type AgingBucket = (typeof agingBuckets)[number];
+export type ReceivableStatus = (typeof receivableStatuses)[number];

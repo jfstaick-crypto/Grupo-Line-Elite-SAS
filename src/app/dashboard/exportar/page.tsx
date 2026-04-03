@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-type ExportType = "admissions" | "transfers" | "histories" | "invoices" | "billing_indicators" | "rips_indicators";
+type ExportType = "admissions" | "transfers" | "histories" | "invoices" | "billing_indicators" | "rips_indicators" | "circular_030";
 
 interface CompanyData {
   name: string;
@@ -24,6 +24,7 @@ const EXPORT_LABELS: Record<string, string> = {
   invoices: "Facturación",
   billing_indicators: "Indicadores Facturación",
   rips_indicators: "Indicadores RIPS",
+  circular_030: "Circular 030 - Deudores SISPRO",
 };
 
 export default function ExportarPage() {
@@ -38,6 +39,9 @@ export default function ExportarPage() {
   const [ripsDateFrom, setRipsDateFrom] = useState("");
   const [ripsDateTo, setRipsDateTo] = useState("");
   const [ripsLoading, setRipsLoading] = useState(false);
+  const [circular030Loading, setCircular030Loading] = useState(false);
+  const [circular030DateFrom, setCircular030DateFrom] = useState("");
+  const [circular030DateTo, setCircular030DateTo] = useState("");
 
   useEffect(() => {
     fetch("/api/empresa").then(r => r.json()).then(setCompany).catch(() => {});
@@ -71,6 +75,12 @@ export default function ExportarPage() {
   };
 
   const fetchData = async (type: string) => {
+    if (type === "circular_030") {
+      const res = await fetch("/api/cartera");
+      if (!res.ok) throw new Error("Error al obtener datos de cartera");
+      const data = await res.json();
+      return data.receivables || [];
+    }
     const res = await fetch(`/api/exportar?type=${type}`);
     if (!res.ok) throw new Error("Error al obtener datos");
     return res.json();
@@ -343,6 +353,19 @@ export default function ExportarPage() {
         const indicators = generateRIPSIndicators(data);
         columns = ["Indicador", "Valor"];
         rows = indicators.map((i) => [i.name, String(i.value)]);
+      } else if (type === "circular_030") {
+        columns = ["Paciente", "Documento", "EPS/Responsable", "Total Facturado", "Total Pagado", "Pendiente", "Días Mora", "Antigüedad", "Estado"];
+        rows = data.map((d: Record<string, unknown>) => [
+          (d.patientName as string) || "-",
+          (d.documentId as string) || "-",
+          (d.insuranceCompany as string) || "Particular",
+          `$${parseFloat((d.totalAmount as string) || "0").toLocaleString("es-CO")}`,
+          `$${parseFloat((d.paidAmount as string) || "0").toLocaleString("es-CO")}`,
+          `$${parseFloat((d.pendingAmount as string) || "0").toLocaleString("es-CO")}`,
+          String(d.agingDays || 0),
+          (d.agingBucketLabel as string) || "-",
+          (d.statusLabel as string) || "-",
+        ]);
       }
 
       autoTable(doc, {
@@ -542,6 +565,7 @@ export default function ExportarPage() {
     { type: "invoices", description: "Facturación con todos los campos DIAN y RIPS", icon: "💰" },
     { type: "billing_indicators", description: "Indicadores: facturación, cobro, EPS, métodos de pago", icon: "📊" },
     { type: "rips_indicators", description: "Indicadores de gestión de traslados", icon: "📈" },
+    { type: "circular_030", description: "Reporte de deudores - Circular 030 para SISPRO/PISIS", icon: "🏦" },
   ];
 
   const exportRIPS = async (format: "pdf" | "excel" | "json") => {
@@ -847,6 +871,49 @@ export default function ExportarPage() {
           </button>
           <button onClick={() => exportRIPS("json")} disabled={ripsLoading} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer">
             {ripsLoading ? "Generando..." : "JSON"}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-1">Circular 030 - Deudores SISPRO/PISIS</h2>
+        <p className="text-sm text-gray-500 mb-4">Reporte de cartera morosa para加载 al Sistema Integral de Información de la Protección Social</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Desde Fecha Factura</label>
+            <input type="date" value={circular030DateFrom} onChange={(e) => setCircular030DateFrom(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Hasta Fecha Factura</label>
+            <input type="date" value={circular030DateTo} onChange={(e) => setCircular030DateTo(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
+          </div>
+          <div className="flex items-end">
+            <div className="bg-amber-50 rounded-lg px-3 py-2 text-xs text-amber-700 w-full">
+              <strong>Circular 030:</strong> Reporte de deudores con más de 60 días de mora - Obligatorio加载 SISPRO
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={() => exportPDF("circular_030")} disabled={loading["circular_030_pdf"]} className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer">
+            {loading["circular_030_pdf"] ? "Generando..." : "PDF"}
+          </button>
+          <button onClick={() => exportExcel("circular_030")} disabled={loading["circular_030_excel"]} className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer">
+            {loading["circular_030_excel"] ? "Generando..." : "Excel"}
+          </button>
+          <button onClick={() => {
+            setCircular030Loading(true);
+            fetch("/api/cartera").then(r => r.json()).then(data => {
+              const blob = new Blob([JSON.stringify(data.receivables, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `Circular030_Deudores_${new Date().toISOString().split("T")[0]}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+              setCircular030Loading(false);
+            }).catch(() => setCircular030Loading(false));
+          }} disabled={circular030Loading} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition disabled:opacity-50 cursor-pointer">
+            {circular030Loading ? "Generando..." : "JSON SISPRO"}
           </button>
         </div>
       </div>

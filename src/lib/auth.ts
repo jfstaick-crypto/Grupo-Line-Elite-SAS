@@ -7,6 +7,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     "exportar",
     "facturacion",
     "empresa",
+    "cartera",
   ],
   admision: ["admision", "traslados"],
   medico: ["historia-clinica"],

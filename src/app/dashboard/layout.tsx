@@ -59,6 +59,12 @@ const NAV_ITEMS = [
     icon: "💰",
   },
   {
+    id: "cartera",
+    label: "Cartera",
+    href: "/dashboard/cartera",
+    icon: "💳",
+  },
+  {
     id: "exportar",
     label: "Exportar",
     href: "/dashboard/exportar",
