@@ -22,8 +22,17 @@ export async function POST(request: Request) {
       );
     }
 
-    await ensureInitialized();
-    const db = getDb();
+    let db;
+    try {
+      await ensureInitialized();
+      db = getDb();
+    } catch (dbError) {
+      console.error("Database initialization error:", dbError);
+      return NextResponse.json(
+        { error: "Error de conexión con la base de datos", details: dbError instanceof Error ? dbError.message : String(dbError) },
+        { status: 500 }
+      );
+    }
 
     const foundUsers = await db
       .select()
@@ -74,7 +83,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(
-      { error: "Error interno del servidor" },
+      { error: "Error interno del servidor", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

@@ -371,7 +371,7 @@ const CREATE_TABLES_SQL = `
     patient_name TEXT,
     ambulance_plate TEXT,
     involved_users TEXT,
-    description TEXT NOTNull,
+    description TEXT NOT NULL,
     causes TEXT,
     consequences TEXT,
     immediate_actions TEXT,
@@ -508,25 +508,40 @@ export async function ensureInitialized() {
   const tursoUrl = process.env.TURSO_DATABASE_URL;
 
   if (tursoUrl && db._client) {
-    // Create tables in Turso
-    await db._client.executeMultiple(CREATE_TABLES_SQL);
+    try {
+      const statements = CREATE_TABLES_SQL.split(';').filter(s => s.trim());
+      for (const stmt of statements) {
+        if (stmt.trim()) {
+          try {
+            await db._client.execute(stmt);
+          } catch (e) {
+            // Ignore errors for existing tables
+          }
+        }
+      }
 
-    // Seed users if empty
-    const result = await db._client.execute(
-      "SELECT COUNT(*) as count FROM users"
-    );
-    const count = result.rows[0]?.count || 0;
+      const result = await db._client.execute(
+        "SELECT COUNT(*) as count FROM users"
+      );
+      const count = result.rows[0]?.count || 0;
 
-    if (count === 0) {
-      const now = Date.now();
-      await db._client.executeMultiple(`
-        INSERT INTO users (username, password, full_name, role, active, created_at)
-        VALUES ('admin', 'admin123', 'Administrador del Sistema', 'administrador', 1, ${now});
-        INSERT INTO users (username, password, full_name, role, active, created_at)
-        VALUES ('admision', 'admision123', 'Usuario de Admision', 'admision', 1, ${now});
-        INSERT INTO users (username, password, full_name, role, active, created_at)
-        VALUES ('medico', 'medico123', 'Dr. Medico General', 'medico', 1, ${now});
-      `);
+      if (count === 0) {
+        const now = Date.now();
+        await db._client.execute(
+          "INSERT INTO users (username, password, full_name, role, active, created_at) VALUES ('admin', 'admin123', 'Administrador del Sistema', 'administrador', 1, ?)",
+          [now]
+        );
+        await db._client.execute(
+          "INSERT INTO users (username, password, full_name, role, active, created_at) VALUES ('admision', 'admision123', 'Usuario de Admision', 'admision', 1, ?)",
+          [now]
+        );
+        await db._client.execute(
+          "INSERT INTO users (username, password, full_name, role, active, created_at) VALUES ('medico', 'medico123', 'Dr. Medico General', 'medico', 1, ?)",
+          [now]
+        );
+      }
+    } catch (e) {
+      console.error("ensureInitialized error:", e);
     }
   }
 }
@@ -646,6 +661,36 @@ function runLocalMigrations(sqlite: { exec(sql: string): void }) {
     "ALTER TABLE invoices ADD COLUMN dian_status TEXT",
     "ALTER TABLE invoices ADD COLUMN rips_status TEXT",
     "ALTER TABLE invoices ADD COLUMN xml_content TEXT",
+    "ALTER TABLE accounts_receivable ADD COLUMN invoice_id INTEGER REFERENCES invoices(id)",
+    "ALTER TABLE accounts_receivable ADD COLUMN patient_id INTEGER REFERENCES patients(id)",
+    "ALTER TABLE accounts_receivable ADD COLUMN document_id TEXT NOT NULL",
+    "ALTER TABLE accounts_receivable ADD COLUMN patient_name TEXT NOT NULL",
+    "ALTER TABLE accounts_receivable ADD COLUMN insurance_company TEXT",
+    "ALTER TABLE accounts_receivable ADD COLUMN contract_number TEXT",
+    "ALTER TABLE accounts_receivable ADD COLUMN total_amount TEXT NOT NULL DEFAULT '0'",
+    "ALTER TABLE accounts_receivable ADD COLUMN paid_amount TEXT DEFAULT '0'",
+    "ALTER TABLE accounts_receivable ADD COLUMN pending_amount TEXT NOT NULL DEFAULT '0'",
+    "ALTER TABLE accounts_receivable ADD COLUMN aging_days INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE accounts_receivable ADD COLUMN aging_bucket TEXT NOT NULL DEFAULT 'corriente'",
+    "ALTER TABLE accounts_receivable ADD COLUMN status TEXT NOT NULL DEFAULT 'pendiente'",
+    "ALTER TABLE accounts_receivable ADD COLUMN due_date INTEGER",
+    "ALTER TABLE accounts_receivable ADD COLUMN first_billing_date INTEGER",
+    "ALTER TABLE accounts_receivable ADD COLUMN last_payment_date INTEGER",
+    "ALTER TABLE accounts_receivable ADD COLUMN payment_count INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE accounts_receivable ADD COLUMN observations TEXT",
+    "ALTER TABLE accounts_receivable ADD COLUMN created_at INTEGER NOT NULL",
+    "ALTER TABLE accounts_receivable ADD COLUMN updated_at INTEGER",
+    "ALTER TABLE payments ADD COLUMN account_receivable_id INTEGER REFERENCES accounts_receivable(id)",
+    "ALTER TABLE payments ADD COLUMN invoice_id INTEGER REFERENCES invoices(id)",
+    "ALTER TABLE payments ADD COLUMN amount TEXT NOT NULL DEFAULT '0'",
+    "ALTER TABLE payments ADD COLUMN payment_method TEXT",
+    "ALTER TABLE payments ADD COLUMN payment_method_code TEXT",
+    "ALTER TABLE payments ADD COLUMN reference_number TEXT",
+    "ALTER TABLE payments ADD COLUMN bank_name TEXT",
+    "ALTER TABLE payments ADD COLUMN payment_date INTEGER NOT NULL",
+    "ALTER TABLE payments ADD COLUMN collected_by INTEGER REFERENCES users(id)",
+    "ALTER TABLE payments ADD COLUMN observations TEXT",
+    "ALTER TABLE payments ADD COLUMN created_at INTEGER NOT NULL",
   ];
 
   for (const sql of migrations) {
