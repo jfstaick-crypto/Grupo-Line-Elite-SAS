@@ -15,6 +15,7 @@ interface SessionUser {
 const ROLE_LABELS: Record<string, string> = {
   administrador: "Administrador",
   admision: "Admisión",
+  auditor: "Auditor",
   medico: "Médico",
   auxiliar_enfermeria: "Auxiliar de Enfermería",
   enfermera_jefe: "Enfermera Jefe",
