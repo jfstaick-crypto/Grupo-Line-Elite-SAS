@@ -47,6 +47,15 @@ interface Transfer {
   transferredByName: string | null;
 }
 
+interface Ambulance {
+  id: number;
+  plate: string;
+  brand: string;
+  model: string;
+  type: string;
+  status: string;
+}
+
 const emptyForm = {
   admissionId: 0,
   patientId: 0,
@@ -96,6 +105,7 @@ const AMBULANCE_TYPES = [
 export default function TrasladosPage() {
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [admissions, setAdmissions] = useState<Admission[]>([]);
+  const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
   const [currentUser, setCurrentUser] = useState<{ userId: number; fullName: string; role: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -109,10 +119,11 @@ export default function TrasladosPage() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [transfersRes, admissionsRes, sessionRes] = await Promise.all([
+      const [transfersRes, admissionsRes, sessionRes, ambulancesRes] = await Promise.all([
         fetch("/api/traslados"),
         fetch("/api/admisiones"),
         fetch("/api/auth/session"),
+        fetch("/api/flota/ambulancias"),
       ]);
       if (!cancelled) {
         if (transfersRes.ok) setTransfers(await transfersRes.json());
@@ -125,6 +136,10 @@ export default function TrasladosPage() {
           if (sessionData.user) {
             setCurrentUser(sessionData.user);
           }
+        }
+        if (ambulancesRes.ok) {
+          const ambData = await ambulancesRes.json();
+          setAmbulances(ambData.ambulances || []);
         }
         setLoading(false);
       }
@@ -319,7 +334,18 @@ export default function TrasladosPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Placa Ambulancia</label>
-                  <input type="text" value={form.ambulancePlate} onChange={(e) => set("ambulancePlate", e.target.value)} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800" />
+                  <select
+                    value={form.ambulancePlate || ""}
+                    onChange={(e) => set("ambulancePlate", e.target.value)}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-800"
+                  >
+                    <option value="">Seleccionar ambulancia...</option>
+                    {ambulances.filter(a => a.status === "disponible").map((amb) => (
+                      <option key={amb.id} value={amb.plate}>
+                        {amb.plate} - {amb.brand} {amb.model} ({amb.type})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Tipo Ambulancia</label>
@@ -511,7 +537,8 @@ export default function TrasladosPage() {
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Destino</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Diagnóstico</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Estado</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Personal</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Amb</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Personal</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -534,6 +561,7 @@ export default function TrasladosPage() {
                      t.status === "completado" ? "Completado" : "Cancelado"}
                   </span>
                 </td>
+                <td className="px-4 py-3 text-sm text-gray-800 font-medium">{t.ambulancePlate || "-"}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{t.driverName || t.doctorName || "-"}</td>
               </tr>
             ))}
