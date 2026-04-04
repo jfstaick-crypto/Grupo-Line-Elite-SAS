@@ -17,6 +17,7 @@ const ROLE_LABELS: Record<string, string> = {
   admision: "Admisión",
   auditor: "Auditor",
   medico: "Médico",
+  enfermera: "Enfermera",
   auxiliar_enfermeria: "Auxiliar de Enfermería",
   enfermera_jefe: "Enfermera Jefe",
   chofer: "Chofer",
