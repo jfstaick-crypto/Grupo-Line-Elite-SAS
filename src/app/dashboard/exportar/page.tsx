@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-type ExportType = "admissions" | "transfers" | "histories" | "invoices" | "billing_indicators" | "rips_indicators" | "circular_030";
+type ExportType = "admissions" | "transfers" | "histories" | "invoices" | "billing_indicators" | "rips_indicators" | "circular_030" | "fleet_indicators" | "pqrs_indicators" | "incidents_indicators" | "agenda_indicators";
 
 interface CompanyData {
   name: string;
@@ -25,6 +25,10 @@ const EXPORT_LABELS: Record<string, string> = {
   billing_indicators: "Indicadores Facturación",
   rips_indicators: "Indicadores RIPS",
   circular_030: "Circular 030 - Deudores SISPRO",
+  fleet_indicators: "Indicadores Flota",
+  pqrs_indicators: "Indicadores PQRS",
+  incidents_indicators: "Indicadores Incidentes",
+  agenda_indicators: "Indicadores Agenda",
 };
 
 export default function ExportarPage() {
@@ -42,6 +46,10 @@ export default function ExportarPage() {
   const [circular030Loading, setCircular030Loading] = useState(false);
   const [circular030DateFrom, setCircular030DateFrom] = useState("");
   const [circular030DateTo, setCircular030DateTo] = useState("");
+  const [fleetLoading, setFleetLoading] = useState(false);
+  const [pqrsLoading, setPqrsLoading] = useState(false);
+  const [incidentsLoading, setIncidentsLoading] = useState(false);
+  const [agendaLoading, setAgendaLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/empresa").then(r => r.json()).then(setCompany).catch(() => {});
@@ -80,6 +88,26 @@ export default function ExportarPage() {
       if (!res.ok) throw new Error("Error al obtener datos de cartera");
       const data = await res.json();
       return data.receivables || [];
+    }
+    if (type === "fleet_indicators") {
+      const res = await fetch("/api/flota/ambulancias");
+      if (!res.ok) throw new Error("Error al obtener datos de flota");
+      return await res.json();
+    }
+    if (type === "pqrs_indicators") {
+      const res = await fetch("/api/pqrs");
+      if (!res.ok) throw new Error("Error al obtener datos de PQRS");
+      return await res.json();
+    }
+    if (type === "incidents_indicators") {
+      const res = await fetch("/api/incidentes");
+      if (!res.ok) throw new Error("Error al obtener datos de incidentes");
+      return await res.json();
+    }
+    if (type === "agenda_indicators") {
+      const res = await fetch("/api/agenda");
+      if (!res.ok) throw new Error("Error al obtener datos de agenda");
+      return await res.json();
     }
     const res = await fetch(`/api/exportar?type=${type}`);
     if (!res.ok) throw new Error("Error al obtener datos");
@@ -366,6 +394,22 @@ export default function ExportarPage() {
           (d.agingBucketLabel as string) || "-",
           (d.statusLabel as string) || "-",
         ]);
+      } else if (type === "fleet_indicators") {
+        const indicators = generateFleetIndicators(data);
+        columns = ["Indicador", "Valor"];
+        rows = indicators.map((i) => [i.name, String(i.value)]);
+      } else if (type === "pqrs_indicators") {
+        const indicators = generatePqrsIndicators(data);
+        columns = ["Indicador", "Valor"];
+        rows = indicators.map((i) => [i.name, String(i.value)]);
+      } else if (type === "incidents_indicators") {
+        const indicators = generateIncidentsIndicators(data);
+        columns = ["Indicador", "Valor"];
+        rows = indicators.map((i) => [i.name, String(i.value)]);
+      } else if (type === "agenda_indicators") {
+        const indicators = generateAgendaIndicators(data);
+        columns = ["Indicador", "Valor"];
+        rows = indicators.map((i) => [i.name, String(i.value)]);
       }
 
       autoTable(doc, {
@@ -472,6 +516,18 @@ export default function ExportarPage() {
         }));
       } else if (type === "billing_indicators") {
         formattedData = data;
+      } else if (type === "fleet_indicators") {
+        const indicators = generateFleetIndicators(data);
+        formattedData = indicators.filter(i => i.value !== "").map(i => ({ Indicador: i.name, Valor: String(i.value) }));
+      } else if (type === "pqrs_indicators") {
+        const indicators = generatePqrsIndicators(data);
+        formattedData = indicators.filter(i => i.value !== "").map(i => ({ Indicador: i.name, Valor: String(i.value) }));
+      } else if (type === "incidents_indicators") {
+        const indicators = generateIncidentsIndicators(data);
+        formattedData = indicators.filter(i => i.value !== "").map(i => ({ Indicador: i.name, Valor: String(i.value) }));
+      } else if (type === "agenda_indicators") {
+        const indicators = generateAgendaIndicators(data);
+        formattedData = indicators.filter(i => i.value !== "").map(i => ({ Indicador: i.name, Valor: String(i.value) }));
       }
 
       const ws = XLSX.utils.json_to_sheet(formattedData);
@@ -558,6 +614,155 @@ export default function ExportarPage() {
     ];
   };
 
+  const generateFleetIndicators = (data: Record<string, unknown>): { name: string; value: string | number }[] => {
+    const summary = data.summary as Record<string, number> || {};
+    const ambulances = data.ambulances as Record<string, unknown>[] || [];
+    
+    const total = summary.total || ambulances.length;
+    const disponibles = summary.disponibles || 0;
+    const en_servicio = summary.en_servicio || 0;
+    const mantenimiento = summary.mantenimiento || 0;
+    const fuera_servicio = summary.fuera_servicio || 0;
+
+    const now = new Date();
+    const soonExpire: string[] = [];
+    ambulances.forEach((a: Record<string, unknown>) => {
+      const soatExp = a.soatExpiration as string;
+      if (soatExp) {
+        const expDate = new Date(soatExp);
+        const days = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (days <= 30 && days > 0) soonExpire.push(`${a.plate} (SOAT)`);
+      }
+      const rtmcExp = a.rtmcExpiration as string;
+      if (rtmcExp) {
+        const expDate = new Date(rtmcExp);
+        const days = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (days <= 30 && days > 0) soonExpire.push(`${a.plate} (RTMC)`);
+      }
+      const habExp = a.habilitacionExpiration as string;
+      if (habExp) {
+        const expDate = new Date(habExp);
+        const days = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (days <= 30 && days > 0) soonExpire.push(`${a.plate} (Habilitación)`);
+      }
+    });
+
+    const disponibilidad = total > 0 ? (disponibles / total) * 100 : 0;
+
+    return [
+      { name: "Total Ambulancias", value: total },
+      { name: "Disponibles", value: disponibles },
+      { name: "En Servicio", value: en_servicio },
+      { name: "En Mantenimiento", value: mantenimiento },
+      { name: "Fuera de Servicio", value: fuera_servicio },
+      { name: "% Disponibilidad", value: `${disponibilidad.toFixed(1)}%` },
+      { name: "--- Vencimientos Próximos ---", value: "" },
+      ...soonExpire.map(v => ({ name: v, value: "⚠️" })),
+    ];
+  };
+
+  const generatePqrsIndicators = (data: Record<string, unknown>): { name: string; value: string | number }[] => {
+    const summary = data.summary as Record<string, number> || {};
+    const pqrs = data.pqrs as Record<string, unknown>[] || [];
+
+    const total = summary.total || pqrs.length;
+    const recibidos = summary.recibidos || 0;
+    const en_proceso = summary.en_proceso || 0;
+    const respondidos = summary.respondidos || 0;
+    const cerrados = summary.cerrados || 0;
+
+    const byType: Record<string, number> = {};
+    pqrs.forEach((p: Record<string, unknown>) => {
+      const type = (p.type as string) || "Otro";
+      byType[type] = (byType[type] || 0) + 1;
+    });
+
+    const byCategory: Record<string, number> = {};
+    pqrs.forEach((p: Record<string, unknown>) => {
+      const cat = (p.category as string) || "Otro";
+      byCategory[cat] = (byCategory[cat] || 0) + 1;
+    });
+
+    const resolutionRate = total > 0 ? ((respondidos + cerrados) / total) * 100 : 0;
+
+    return [
+      { name: "Total PQRS", value: total },
+      { name: "Recibidos", value: recibidos },
+      { name: "En Proceso", value: en_proceso },
+      { name: "Respondidos", value: respondidos },
+      { name: "Cerrados", value: cerrados },
+      { name: "% Resueltos", value: `${resolutionRate.toFixed(1)}%` },
+      { name: "--- Por Tipo ---", value: "" },
+      ...Object.entries(byType).map(([k, v]) => ({ name: k, value: v })),
+      { name: "--- Por Categoría ---", value: "" },
+      ...Object.entries(byCategory).map(([k, v]) => ({ name: k, value: v })),
+    ];
+  };
+
+  const generateIncidentsIndicators = (data: Record<string, unknown>): { name: string; value: string | number }[] => {
+    const summary = data.summary as Record<string, number> || {};
+    const incidents = data.incidents as Record<string, unknown>[] || [];
+
+    const total = summary.total || incidents.length;
+    const en_investigacion = summary.en_investigacion || 0;
+    const pendiente_accion = summary.pendiente_accion || 0;
+    const cerrado = summary.cerrado || 0;
+    const criticos = summary.criticos || 0;
+    const graves = summary.graves || 0;
+    const leves = summary.leves || 0;
+
+    const byType: Record<string, number> = {};
+    incidents.forEach((i: Record<string, unknown>) => {
+      const type = (i.incidentType as string) || "Otro";
+      byType[type] = (byType[type] || 0) + 1;
+    });
+
+    const severityRate = total > 0 ? ((criticos + graves) / total) * 100 : 0;
+
+    return [
+      { name: "Total Incidentes", value: total },
+      { name: "En Investigación", value: en_investigacion },
+      { name: "Pendiente Acción", value: pendiente_accion },
+      { name: "Cerrados", value: cerrado },
+      { name: "Críticos", value: criticos },
+      { name: "Graves", value: graves },
+      { name: "Leves", value: leves },
+      { name: "% Severidad Crítica/Grave", value: `${severityRate.toFixed(1)}%` },
+      { name: "--- Por Tipo ---", value: "" },
+      ...Object.entries(byType).map(([k, v]) => ({ name: k, value: v })),
+    ];
+  };
+
+  const generateAgendaIndicators = (data: Record<string, unknown>): { name: string; value: string | number }[] => {
+    const summary = data.summary as Record<string, number> || {};
+    const schedules = data.schedules as Record<string, unknown>[] || [];
+
+    const total = summary.total || schedules.length;
+    const programados = summary.programados || 0;
+    const en_curso = summary.en_curso || 0;
+    const completados = summary.completados || 0;
+    const cancelados = summary.cancelados || 0;
+
+    const byType: Record<string, number> = {};
+    schedules.forEach((s: Record<string, unknown>) => {
+      const type = (s.scheduleType as string) || "Otro";
+      byType[type] = (byType[type] || 0) + 1;
+    });
+
+    const completionRate = total > 0 ? (completados / total) * 100 : 0;
+
+    return [
+      { name: "Total Actividades", value: total },
+      { name: "Programados", value: programados },
+      { name: "En Curso", value: en_curso },
+      { name: "Completados", value: completados },
+      { name: "Cancelados", value: cancelados },
+      { name: "% Completados", value: `${completionRate.toFixed(1)}%` },
+      { name: "--- Por Tipo ---", value: "" },
+      ...Object.entries(byType).map(([k, v]) => ({ name: k, value: v })),
+    ];
+  };
+
   const exportOptions = [
     { type: "admissions", description: "Listado de admisiones con encabezado institucional", icon: "📋" },
     { type: "transfers", description: "Formato de traslado según normatividad vigente", icon: "🚑" },
@@ -566,6 +771,10 @@ export default function ExportarPage() {
     { type: "billing_indicators", description: "Indicadores: facturación, cobro, EPS, métodos de pago", icon: "📊" },
     { type: "rips_indicators", description: "Indicadores de gestión de traslados", icon: "📈" },
     { type: "circular_030", description: "Reporte de deudores - Circular 030 para SISPRO/PISIS", icon: "🏦" },
+    { type: "fleet_indicators", description: "Indicadores de flota: ambulancias, disponibilidad, vencimientos", icon: "🚐" },
+    { type: "pqrs_indicators", description: "Indicadores PQRS: petitions, quejas, reclamos, tiempos de respuesta", icon: "📣" },
+    { type: "incidents_indicators", description: "Indicadores de incidentes: eventos adversos, severidad", icon: "⚠️" },
+    { type: "agenda_indicators", description: "Indicadores de agenda: servicios programados, mantenimientos", icon: "📅" },
   ];
 
   const exportRIPS = async (format: "pdf" | "excel" | "json") => {
