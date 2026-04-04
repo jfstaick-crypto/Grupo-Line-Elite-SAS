@@ -235,6 +235,219 @@ const CREATE_TABLES_SQL = `
     details TEXT,
     created_at INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS accounts_receivable (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_id INTEGER NOT NULL REFERENCES invoices(id),
+    patient_id INTEGER NOT NULL REFERENCES patients(id),
+    document_id TEXT NOT NULL,
+    patient_name TEXT NOT NULL,
+    insurance_company TEXT,
+    contract_number TEXT,
+    total_amount TEXT NOT NULL DEFAULT '0',
+    paid_amount TEXT DEFAULT '0',
+    pending_amount TEXT NOT NULL DEFAULT '0',
+    aging_days INTEGER NOT NULL DEFAULT 0,
+    aging_bucket TEXT NOT NULL DEFAULT 'corriente',
+    status TEXT NOT NULL DEFAULT 'pendiente',
+    due_date INTEGER,
+    first_billing_date INTEGER,
+    last_payment_date INTEGER,
+    payment_count INTEGER NOT NULL DEFAULT 0,
+    observations TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_receivable_id INTEGER NOT NULL REFERENCES accounts_receivable(id),
+    invoice_id INTEGER REFERENCES invoices(id),
+    amount TEXT NOT NULL DEFAULT '0',
+    payment_method TEXT,
+    payment_method_code TEXT,
+    reference_number TEXT,
+    bank_name TEXT,
+    payment_date INTEGER NOT NULL,
+    collected_by INTEGER NOT NULL REFERENCES users(id),
+    observations TEXT,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS ambulances (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    plate TEXT NOT NULL UNIQUE,
+    brand TEXT NOT NULL,
+    model TEXT NOT NULL,
+    type TEXT NOT NULL,
+    year INTEGER,
+    vin TEXT,
+    engine_number TEXT,
+    soat_number TEXT,
+    soat_expiration INTEGER,
+    rtmc_number TEXT,
+    rtmc_expiration INTEGER,
+    habilitacion_number TEXT,
+    habilitacion_expiration INTEGER,
+    license_plate TEXT,
+    license_expiration INTEGER,
+    status TEXT NOT NULL DEFAULT 'disponible',
+    current_km INTEGER DEFAULT 0,
+    insurance_company TEXT,
+    policy_number TEXT,
+    insurance_expiration INTEGER,
+    equipment_kit TEXT,
+    last_maintenance_date INTEGER,
+    next_maintenance_km INTEGER,
+    observations TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS maintenance_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ambulance_id INTEGER NOT NULL REFERENCES ambulances(id),
+    maintenance_type TEXT NOT NULL,
+    description TEXT NOT NULL,
+    maintenance_date INTEGER NOT NULL,
+    next_maintenance_date INTEGER,
+    cost TEXT DEFAULT '0',
+    provider TEXT,
+    invoice_number TEXT,
+    km_reading INTEGER,
+    observations TEXT,
+    created_by INTEGER NOT NULL REFERENCES users(id),
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS ambulance_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ambulance_id INTEGER NOT NULL REFERENCES ambulances(id),
+    service_date INTEGER NOT NULL,
+    service_type TEXT NOT NULL,
+    origin_city TEXT,
+    destination_city TEXT,
+    km_start INTEGER,
+    km_end INTEGER,
+    driver_id INTEGER REFERENCES users(id),
+    auxiliary_id INTEGER REFERENCES users(id),
+    patient_name TEXT,
+    authorization_number TEXT,
+    value TEXT,
+    observations TEXT,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS pqrs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL,
+    category TEXT NOT NULL,
+    priority TEXT NOT NULL DEFAULT 'normal',
+    patient_document_id TEXT,
+    patient_name TEXT,
+    patient_phone TEXT,
+    patient_email TEXT,
+    subject TEXT NOT NULL,
+    description TEXT NOT NULL,
+    related_module TEXT,
+    related_id INTEGER,
+    status TEXT NOT NULL DEFAULT 'recibido',
+    assigned_to INTEGER REFERENCES users(id),
+    response TEXT,
+    response_date INTEGER,
+    closure_date INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS incidents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    incident_type TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    incident_date INTEGER NOT NULL,
+    location TEXT,
+    transfer_id INTEGER REFERENCES transfers(id),
+    patient_id INTEGER REFERENCES patients(id),
+    patient_name TEXT,
+    ambulance_plate TEXT,
+    involved_users TEXT,
+    description TEXT NOTNull,
+    causes TEXT,
+    consequences TEXT,
+    immediate_actions TEXT,
+    recommendations TEXT,
+    reported_by INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'en_investigacion',
+    investigation_report TEXT,
+    closure_date INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS informed_consents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL REFERENCES patients(id),
+    transfer_id INTEGER REFERENCES transfers(id),
+    consent_type TEXT NOT NULL,
+    document_type TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    patient_full_name TEXT NOT NULL,
+    representative_name TEXT,
+    representative_document TEXT,
+    relationship TEXT,
+    procedure TEXT NOT NULL,
+    risks TEXT,
+    benefits TEXT,
+    alternatives TEXT,
+    authorization INTEGER NOT NULL DEFAULT 0,
+    signature_data TEXT,
+    signed_at INTEGER,
+    witness1_name TEXT,
+    witness1_document TEXT,
+    witness2_name TEXT,
+    witness2_document TEXT,
+    professional_name TEXT,
+    professional_document TEXT,
+    professional_license TEXT,
+    professional_signature TEXT,
+    observations TEXT,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS schedules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    schedule_type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    start_date INTEGER NOT NULL,
+    end_date INTEGER,
+    all_day INTEGER DEFAULT 1,
+    recurrence TEXT,
+    ambulance_id INTEGER REFERENCES ambulances(id),
+    assigned_user_id INTEGER REFERENCES users(id),
+    related_module TEXT,
+    related_id INTEGER,
+    status TEXT NOT NULL DEFAULT 'programado',
+    reminder_date INTEGER,
+    observations TEXT,
+    created_by INTEGER NOT NULL REFERENCES users(id),
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS vehicle_documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ambulance_id INTEGER NOT NULL REFERENCES ambulances(id),
+    document_type TEXT NOT NULL,
+    document_number TEXT,
+    issue_date INTEGER,
+    expiration_date INTEGER,
+    file_url TEXT,
+    status TEXT NOT NULL DEFAULT 'vigente',
+    observations TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER
+  );
 `;
 
 export function getDb() {

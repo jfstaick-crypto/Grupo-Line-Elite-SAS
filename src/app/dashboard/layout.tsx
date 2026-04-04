@@ -35,6 +35,18 @@ const NAV_ITEMS = [
     icon: "👥",
   },
   {
+    id: "flota",
+    label: "Flota",
+    href: "/dashboard/flota",
+    icon: "🚐",
+  },
+  {
+    id: "agenda",
+    label: "Agenda",
+    href: "/dashboard/agenda",
+    icon: "📅",
+  },
+  {
     id: "admision",
     label: "Admisión",
     href: "/dashboard/admision",
@@ -53,6 +65,18 @@ const NAV_ITEMS = [
     icon: "📝",
   },
   {
+    id: "consentimientos",
+    label: "Consentimientos",
+    href: "/dashboard/consentimientos",
+    icon: "📜",
+  },
+  {
+    id: "incidentes",
+    label: "Incidentes",
+    href: "/dashboard/incidentes",
+    icon: "⚠️",
+  },
+  {
     id: "facturacion",
     label: "Facturación",
     href: "/dashboard/facturacion",
@@ -63,6 +87,12 @@ const NAV_ITEMS = [
     label: "Cartera",
     href: "/dashboard/cartera",
     icon: "💳",
+  },
+  {
+    id: "pqrs",
+    label: "PQRS",
+    href: "/dashboard/pqrs",
+    icon: "📣",
   },
   {
     id: "exportar",

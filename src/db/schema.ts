@@ -413,3 +413,220 @@ export const receivableStatuses = [
 
 export type AgingBucket = (typeof agingBuckets)[number];
 export type ReceivableStatus = (typeof receivableStatuses)[number];
+
+export const ambulances = sqliteTable("ambulances", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  plate: text("plate").notNull().unique(),
+  brand: text("brand").notNull(),
+  model: text("model").notNull(),
+  type: text("type").notNull(),
+  year: integer("year"),
+  vin: text("vin"),
+  engineNumber: text("engine_number"),
+  soatNumber: text("soat_number"),
+  soatExpiration: integer("soat_expiration", { mode: "timestamp" }),
+  rtmcNumber: text("rtmc_number"),
+  rtmcExpiration: integer("rtmc_expiration", { mode: "timestamp" }),
+  habilitacionNumber: text("habilitacion_number"),
+  habilitacionExpiration: integer("habilitacion_expiration", { mode: "timestamp" }),
+  licensePlate: text("license_plate"),
+  licenseExpiration: integer("license_expiration", { mode: "timestamp" }),
+  status: text("status").notNull().default("disponible"),
+  currentKm: integer("current_km").default(0),
+  insuranceCompany: text("insurance_company"),
+  policyNumber: text("policy_number"),
+  insuranceExpiration: integer("insurance_expiration", { mode: "timestamp" }),
+  equipmentKit: text("equipment_kit"),
+  lastMaintenanceDate: integer("last_maintenance_date", { mode: "timestamp" }),
+  nextMaintenanceKm: integer("next_maintenance_km"),
+  observations: text("observations"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
+
+export const maintenanceRecords = sqliteTable("maintenance_records", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  ambulanceId: integer("ambulance_id")
+    .notNull()
+    .references(() => ambulances.id),
+  maintenanceType: text("maintenance_type").notNull(),
+  description: text("description").notNull(),
+  maintenanceDate: integer("maintenance_date", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  nextMaintenanceDate: integer("next_maintenance_date", { mode: "timestamp" }),
+  cost: text("cost").default("0"),
+  provider: text("provider"),
+  invoiceNumber: text("invoice_number"),
+  kmReading: integer("km_reading"),
+  observations: text("observations"),
+  createdBy: integer("created_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const ambulanceLogs = sqliteTable("ambulance_logs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  ambulanceId: integer("ambulance_id")
+    .notNull()
+    .references(() => ambulances.id),
+  serviceDate: integer("service_date", { mode: "timestamp" }).notNull(),
+  serviceType: text("service_type").notNull(),
+  originCity: text("origin_city"),
+  destinationCity: text("destination_city"),
+  kmStart: integer("km_start"),
+  kmEnd: integer("km_end"),
+  driverId: integer("driver_id").references(() => users.id),
+  auxiliaryId: integer("auxiliary_id").references(() => users.id),
+  patientName: text("patient_name"),
+  authorizationNumber: text("authorization_number"),
+  value: text("value"),
+  observations: text("observations"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const pqrs = sqliteTable("pqrs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  type: text("type").notNull(),
+  category: text("category").notNull(),
+  priority: text("priority").notNull().default("normal"),
+  patientDocumentId: text("patient_document_id"),
+  patientName: text("patient_name"),
+  patientPhone: text("patient_phone"),
+  patientEmail: text("patient_email"),
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+  relatedModule: text("related_module"),
+  relatedId: integer("related_id"),
+  status: text("status").notNull().default("recibido"),
+  assignedTo: integer("assigned_to").references(() => users.id),
+  response: text("response"),
+  responseDate: integer("response_date", { mode: "timestamp" }),
+  closureDate: integer("closure_date", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
+
+export const incidents = sqliteTable("incidents", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  incidentType: text("incident_type").notNull(),
+  severity: text("severity").notNull(),
+  incidentDate: integer("incident_date", { mode: "timestamp" }).notNull(),
+  location: text("location"),
+  transferId: integer("transfer_id").references(() => transfers.id),
+  patientId: integer("patient_id").references(() => patients.id),
+  patientName: text("patient_name"),
+  ambulancePlate: text("ambulance_plate"),
+  involvedUsers: text("involved_users"),
+  description: text("description").notNull(),
+  causes: text("causes"),
+  consequences: text("consequences"),
+  immediateActions: text("immediate_actions"),
+  recommendations: text("recommendations"),
+  reportedBy: integer("reported_by")
+    .notNull()
+    .references(() => users.id),
+  status: text("status").notNull().default("en_investigacion"),
+  investigationReport: text("investigation_report"),
+  closureDate: integer("closure_date", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
+
+export const informedConsents = sqliteTable("informed_consents", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  patientId: integer("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  transferId: integer("transfer_id").references(() => transfers.id),
+  consentType: text("consent_type").notNull(),
+  documentType: text("document_type").notNull(),
+  documentId: text("document_id").notNull(),
+  patientFullName: text("patient_full_name").notNull(),
+  representativeName: text("representative_name"),
+  representativeDocument: text("representative_document"),
+  relationship: text("relationship"),
+  procedure: text("procedure").notNull(),
+  risks: text("risks"),
+  benefits: text("benefits"),
+  alternatives: text("alternatives"),
+  authorization: integer("authorization", { mode: "boolean" }).notNull().default(false),
+  signatureData: text("signature_data"),
+  signedAt: integer("signed_at", { mode: "timestamp" }),
+  witness1Name: text("witness1_name"),
+  witness1Document: text("witness1_document"),
+  witness2Name: text("witness2_name"),
+  witness2Document: text("witness2_document"),
+  professionalName: text("professional_name"),
+  professionalDocument: text("professional_document"),
+  professionalLicense: text("professional_license"),
+  professionalSignature: text("professional_signature"),
+  observations: text("observations"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const schedules = sqliteTable("schedules", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  scheduleType: text("schedule_type").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  startDate: integer("start_date", { mode: "timestamp" }).notNull(),
+  endDate: integer("end_date", { mode: "timestamp" }),
+  allDay: integer("all_day", { mode: "boolean" }).default(true),
+  recurrence: text("recurrence"),
+  ambulanceId: integer("ambulance_id").references(() => ambulances.id),
+  assignedUserId: integer("assigned_user_id").references(() => users.id),
+  relatedModule: text("related_module"),
+  relatedId: integer("related_id"),
+  status: text("status").notNull().default("programado"),
+  reminderDate: integer("reminder_date", { mode: "timestamp" }),
+  observations: text("observations"),
+  createdBy: integer("created_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
+
+export const vehicleDocuments = sqliteTable("vehicle_documents", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  ambulanceId: integer("ambulance_id")
+    .notNull()
+    .references(() => ambulances.id),
+  documentType: text("document_type").notNull(),
+  documentNumber: text("document_number"),
+  issueDate: integer("issue_date", { mode: "timestamp" }),
+  expirationDate: integer("expiration_date", { mode: "timestamp" }),
+  fileUrl: text("file_url"),
+  status: text("status").notNull().default("vigente"),
+  observations: text("observations"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
