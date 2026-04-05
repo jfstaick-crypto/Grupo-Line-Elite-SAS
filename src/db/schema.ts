@@ -3,7 +3,12 @@ import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 export const ROLES = {
   ADMINISTRADOR: "administrador",
   ADMISION: "admision",
+  AUDITOR: "auditor",
   MEDICO: "medico",
+  ENFERMERA: "enfermera",
+  AUXILIAR_ENFERMERIA: "auxiliar_enfermeria",
+  ENFERMERA_JEFE: "enfermera_jefe",
+  CHOFER: "chofer",
 } as const;
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
