@@ -157,7 +157,7 @@ export default function AdmisionPage() {
         if (usersRes.ok) {
           const allUsers = await usersRes.json();
           setNurses(allUsers.filter((u: { role: string; active: boolean }) => 
-            (u.role === "auxiliar_enfermeria" || u.role === "enfermera_jefe") && u.active
+            (u.role === "enfermera" || u.role === "auxiliar_enfermeria" || u.role === "enfermera_jefe") && u.active
           ));
         }
         setLoading(false);

@@ -132,7 +132,7 @@ export default function HistoriaClinicaPage() {
         if (usersRes.ok) {
           const allUsers = await usersRes.json();
           setDoctors(allUsers.filter((u: StaffMember) => u.role === "medico" && u.active));
-          setNurses(allUsers.filter((u: StaffMember) => (u.role === "auxiliar_enfermeria" || u.role === "enfermera_jefe") && u.active));
+          setNurses(allUsers.filter((u: StaffMember) => (u.role === "enfermera" || u.role === "auxiliar_enfermeria" || u.role === "enfermera_jefe") && u.active));
           setDrivers(allUsers.filter((u: StaffMember) => u.role === "chofer" && u.active));
         }
         setLoading(false);

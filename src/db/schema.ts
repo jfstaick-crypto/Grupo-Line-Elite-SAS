@@ -23,7 +23,7 @@ export const REGIMES = [
 ] as const;
 
 export const SIGNATURE_ROLES = [
-  "medico", "auxiliar_enfermeria", "enfermera_jefe",
+  "medico", "enfermera", "auxiliar_enfermeria", "enfermera_jefe",
 ] as const;
 
 export const PAYMENT_METHODS_DIAN = [
