@@ -29,7 +29,6 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
   auditor: ["exportar"],
   medico: ["historia-clinica", "consentimientos", "incidentes"],
-  enfermera: ["historia-clinica"],
   auxiliar_enfermeria: ["historia-clinica"],
   enfermera_jefe: ["historia-clinica", "consentimientos", "incidentes", "traslados"],
   chofer: ["traslados"],

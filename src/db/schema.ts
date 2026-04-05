@@ -5,7 +5,6 @@ export const ROLES = {
   ADMISION: "admision",
   AUDITOR: "auditor",
   MEDICO: "medico",
-  ENFERMERA: "enfermera",
   AUXILIAR_ENFERMERIA: "auxiliar_enfermeria",
   ENFERMERA_JEFE: "enfermera_jefe",
   CHOFER: "chofer",
@@ -28,7 +27,7 @@ export const REGIMES = [
 ] as const;
 
 export const SIGNATURE_ROLES = [
-  "medico", "enfermera", "auxiliar_enfermeria", "enfermera_jefe",
+  "medico", "auxiliar_enfermeria", "enfermera_jefe",
 ] as const;
 
 export const PAYMENT_METHODS_DIAN = [
