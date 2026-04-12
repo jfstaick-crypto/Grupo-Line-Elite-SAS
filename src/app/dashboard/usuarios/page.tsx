@@ -81,6 +81,11 @@ export default function UsuariosPage() {
     setError("");
     setSuccess("");
 
+    if (SIGNATURE_ROLES.includes(formData.role) && !formData.signature) {
+      setError("La firma digital es obligatoria para este perfil");
+      return;
+    }
+
     try {
       const url = "/api/usuarios";
       const method = editingUser ? "PUT" : "POST";
